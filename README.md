@@ -14,7 +14,9 @@
 Клонировать репозиторий и перейти в него в командной строке:
 
 ```
-git clone https://github.com/KuznetcovIvan/api_yamdb/tree/develop
+
+git clone https://github.com/KuznetcovIvan/api_yamdb/
+
 ```
 
 ```
@@ -63,3 +65,5 @@ http://127.0.0.1:8000/redoc/
 ### Авторы
 [Ivan Kuznetcov](https://github.com/KuznetcovIvan)
 [Anastasiya Kharkova](https://github.com/AVKharkova)
+[Danila Agapov]
+
