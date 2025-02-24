@@ -13,7 +13,7 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    """Жанры."""
+    """Жанры произведений."""
     name = models.CharField(max_length=256, unique=True)
     slug = models.SlugField(unique=True, max_length=50)
 
@@ -26,7 +26,7 @@ class Title(models.Model):
     name = models.CharField(max_length=256)
     year = models.PositiveIntegerField(
         validators=[MinValueValidator(1000), MaxValueValidator(datetime.datetime.now().year)],
-        help_text='Нельзя добавлять произведения, которые еще не вышли. Год выпуска не может быть больше текущего.'
+        help_text='Год выпуска не может быть больше текущего.'
     )
     rating = models.IntegerField(
         null=True, blank=True,
