@@ -7,8 +7,11 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import Title, Category, Genre
 
-from .serializers import (TitleSerializer, CategorySerializer, GenreSerializer,
-                          SignUpSerializer, TokenSerializer)
+from .serializers import (
+    TitleSerializer, TitleCreateSerializer,
+    CategorySerializer, GenreSerializer,
+    TokenSerializer, SignUpSerializer
+)
 from users.models import User
 
 
