@@ -1,6 +1,8 @@
-from rest_framework import serializers
-from reviews.models import Title, Category, Genre
+import re
 
+from rest_framework import serializers
+
+from reviews.models import Category, Genre, Title
 from users.models import User
 
 
@@ -41,35 +43,30 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.EmailField(max_length=254)
     username = serializers.CharField(max_length=150)
 
+    def validate_username(self, username):
+        if username.lower() == 'me':
+            raise serializers.ValidationError('Имя "me" запрещено.')
+        if not re.match(r'^[\w.@+-]+$', username):
+            raise serializers.ValidationError(
+                'Допустимы только буквы, цифры и @/./+/-/_')
+        return username
+
     def validate(self, data):
-        if data.get('username').lower() == 'me':
+        if User.objects.filter(username=data['username']).exists():
             raise serializers.ValidationError(
-                'Использовать имя "me" в качестве username запрещено.')
-        if User.objects.filter(username=data.get('username')):
+                {'username': 'Это имя уже занято.'})
+        if User.objects.filter(email=data['email']).exists():
             raise serializers.ValidationError(
-                'Пользователь с таким username уже существует')
-        if User.objects.filter(email=data.get('email')):
-            raise serializers.ValidationError(
-                'Пользователь с таким email уже существует')
+                {'email': 'Этот email уже занят.'})
         return data
 
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
-    confirmation_code = serializers.CharField(max_length=150)
-
-    def validate(self, data):
-        try:
-            user = User.objects.get(
-                username=data['username'],
-                confirmation_code=data['confirmation_code'])
-        except User.DoesNotExist:
-            raise serializers.ValidationError(
-                'Неверный код подтверждения или имя пользователя.')
-        return {'user': user}
+    confirmation_code = serializers.CharField()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -80,6 +77,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_username(self, username):
         if username.lower() == 'me':
-            raise serializers.ValidationError(
-                'Использовать имя "me" в качестве username запрещено.')
+            raise serializers.ValidationError('Имя "me" запрещено.')
         return username
+
+class MeSerializer(UserSerializer):
+    role = serializers.CharField(read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        pass

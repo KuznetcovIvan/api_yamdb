@@ -1,10 +1,12 @@
 import csv
 import os
-from django.core.management.base import BaseCommand
+
 from django.conf import settings
+from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
+
+from reviews.models import Category, Comment, Genre, Review, Title 
 from users.models import User
-from reviews.models import Category, Genre, Title, Review, Comment
 
 DATA_PATH = os.path.join(settings.BASE_DIR, 'static', 'data')
 
@@ -61,9 +63,12 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'{model.__name__} импортированы'))
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'Ошибка при чтении файла {file_name}: {e}'))
-
         # Импорт пользователей
-        import_data(User, 'users.csv', ['id', 'username', 'email', 'role', 'bio', 'first_name', 'last_name'], id_field='id')
+        import_data(
+            User, 'users.csv',
+            ['id', 'username', 'email', 'role', 'bio', 'first_name', 'last_name'],
+            id_field='id'
+        )
 
         # Импорт категорий и жанров
         import_data(Category, 'category.csv', ['id', 'name', 'slug'], id_field='id')
@@ -95,8 +100,6 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f'Ошибка при чтении файла genre_title.csv: {e}'))
         else:
             self.stdout.write(self.style.WARNING('Файл genre_title.csv не найден'))
-
-        # Импорт отзывов и комментариев
         import_data(
             Review, 'review.csv', ['id', 'text', 'score', 'pub_date', 'author', 'title'],
             foreign_keys={'author': (User, 'id'), 'title': (Title, 'id')}, id_field='id'
@@ -106,5 +109,4 @@ class Command(BaseCommand):
             Comment, 'comments.csv', ['id', 'text', 'pub_date', 'author', 'review'],
             foreign_keys={'author': (User, 'id'), 'review': (Review, 'id')}, id_field='id'
         )
-
         self.stdout.write(self.style.SUCCESS('Импорт завершен'))
