@@ -18,7 +18,6 @@ from .serializers import (
 )
 
 
-
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
     queryset = Title.objects.all()
@@ -58,6 +57,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
+
 class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = SignUpSerializer
@@ -82,14 +82,15 @@ class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 class TokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = TokenSerializer
-    
+    permission_classes = (AllowAny,)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data['username']
         confirmation_code = serializer.validated_data['confirmation_code']
         user = get_object_or_404(User, username=username)
-        
+
         if not default_token_generator.check_token(user, confirmation_code):
             return Response(
                 {'confirmation_code': 'Неверный код подтверждения'},
@@ -97,7 +98,7 @@ class TokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         return Response(
             {'token': str(AccessToken.for_user(user))},
             status=status.HTTP_200_OK)
-    
+
 
 class UserViewSet(viewsets.ModelViewSet):
 
@@ -108,7 +109,7 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
-    
+
     def get_permissions(self):
         if self.action in ('list', 'create', 'retrieve', 'update',
                            'partial_update', 'destroy'):
@@ -122,7 +123,6 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
         serializer_class=MeSerializer
     )
-    
     def me(self, request):
         user = request.user
         if request.method == 'PATCH':
