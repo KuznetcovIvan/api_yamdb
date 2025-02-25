@@ -37,13 +37,13 @@ class SignUpSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=254)
     username = serializers.CharField(max_length=150)
 
-    def validate_username(self, value):
-        if value.lower() == 'me':
+    def validate_username(self, username):
+        if username.lower() == 'me':
             raise serializers.ValidationError('Имя "me" запрещено.')
-        if not re.match(r'^[\w.@+-]+$', value):
+        if not re.match(r'^[\w.@+-]+$', username):
             raise serializers.ValidationError(
                 'Допустимы только буквы, цифры и @/./+/-/_')
-        return value
+        return username
 
     def validate(self, data):
         if User.objects.filter(username=data['username']).exists():
@@ -67,7 +67,7 @@ class UserSerializer(serializers.ModelSerializer):
             'username', 'email', 'first_name', 'last_name', 'bio', 'role')
 
     def validate_username(self, username):
-        if value.lower() == 'me':
+        if username.lower() == 'me':
             raise serializers.ValidationError('Имя "me" запрещено.')
         return username
 
