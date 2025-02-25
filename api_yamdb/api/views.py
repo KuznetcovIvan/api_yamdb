@@ -1,7 +1,6 @@
 from rest_framework import viewsets, permissions, filters
 from rest_framework.pagination import PageNumberPagination
 from reviews.models import Title, Category, Genre
-from users.models import MyUser
 from .serializers import TitleSerializer, CategorySerializer, GenreSerializer
 
 
