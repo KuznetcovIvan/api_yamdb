@@ -8,7 +8,7 @@ CHOICES = (
 )
 
 
-class MyUser(AbstractUser):
+class User(AbstractUser):
     email = models.EmailField('Почта', unique=True)
     bio = models.TextField('Биография', blank=True)
     role = models.CharField(
