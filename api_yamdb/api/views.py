@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination, PageNumberPagination
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
@@ -22,7 +22,7 @@ from .serializers import (
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
     queryset = Title.objects.all()
-    pagination_class = LimitOffsetPagination
+    pagination_class = PageNumberPagination
     filter_backends = [filters.SearchFilter]
     # Для фильтрации по полям (например, ?genre=rock)
     search_fields = ['name', 'year', 'category__slug', 'genre__slug']
@@ -35,7 +35,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'partial_update', 'destroy']:
-            return [permissions.IsAdminUser()]
+            return [IsAdminUser()]
         return [permissions.AllowAny()]
 
 
@@ -48,6 +48,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 class GenreViewSet(viewsets.ModelViewSet):
     """Вьюсет для жанров."""
@@ -57,6 +60,10 @@ class GenreViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
@@ -82,14 +89,15 @@ class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 class TokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = TokenSerializer
-    
+    permission_classes = (AllowAny,)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data['username']
         confirmation_code = serializer.validated_data['confirmation_code']
         user = get_object_or_404(User, username=username)
-        
+
         if not default_token_generator.check_token(user, confirmation_code):
             return Response(
                 {'confirmation_code': 'Неверный код подтверждения'},
@@ -97,7 +105,7 @@ class TokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         return Response(
             {'token': str(AccessToken.for_user(user))},
             status=status.HTTP_200_OK)
-    
+
 
 class UserViewSet(viewsets.ModelViewSet):
 
@@ -108,7 +116,7 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
-    
+
     def get_permissions(self):
         if self.action in ('list', 'create', 'retrieve', 'update',
                            'partial_update', 'destroy'):
@@ -122,7 +130,6 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
         serializer_class=MeSerializer
     )
-    
     def me(self, request):
         user = request.user
         if request.method == 'PATCH':
