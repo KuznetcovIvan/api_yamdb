@@ -3,7 +3,7 @@ import os
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from users.models import MyUser
+from users.models import User
 from reviews.models import Category, Genre, Title, Review, Comment
 
 DATA_PATH = os.path.join(settings.BASE_DIR, 'static', 'data')
@@ -41,7 +41,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f'Ошибка при чтении файла {file_name}: {e}'))
 
         # Импорт пользователей, категорий и жанров
-        import_data(MyUser, 'users.csv', ['username', 'email', 'role', 'bio', 'first_name', 'last_name'])
+        import_data(User, 'users.csv', ['username', 'email', 'role', 'bio', 'first_name', 'last_name'])
         import_data(Category, 'category.csv', ['name', 'slug'])
         import_data(Genre, 'genre.csv', ['name', 'slug'])
 
@@ -107,7 +107,7 @@ class Command(BaseCommand):
                     for row in reader:
                         try:
                             title = Title.objects.get(pk=row['title'])
-                            user = MyUser.objects.get(username=row['author'])
+                            user = User.objects.get(username=row['author'])
                             Review.objects.get_or_create(
                                 title=title,
                                 author=user,
@@ -136,7 +136,7 @@ class Command(BaseCommand):
                     for row in reader:
                         try:
                             review = Review.objects.get(pk=row['review'])
-                            user = MyUser.objects.get(username=row['author'])
+                            user = User.objects.get(username=row['author'])
                             Comment.objects.get_or_create(
                                 review=review,
                                 author=user,
