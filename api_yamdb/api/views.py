@@ -92,6 +92,9 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = (IsAuthenticated,)
+    pagination_class = PageNumberPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username',)
     
     def get_permissions(self):
         if self.action in ('list', 'create', 'retrieve', 'update',
