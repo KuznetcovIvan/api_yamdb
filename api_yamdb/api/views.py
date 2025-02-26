@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination, PageNumberPagination
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
@@ -21,7 +21,7 @@ from .serializers import (
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
     queryset = Title.objects.all()
-    pagination_class = LimitOffsetPagination
+    pagination_class = PageNumberPagination
     filter_backends = [filters.SearchFilter]
     # Для фильтрации по полям (например, ?genre=rock)
     search_fields = ['name', 'year', 'category__slug', 'genre__slug']
@@ -34,7 +34,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'partial_update', 'destroy']:
-            return [permissions.IsAdminUser()]
+            return [IsAdminUser()]
         return [permissions.AllowAny()]
 
 
@@ -47,6 +47,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 class GenreViewSet(viewsets.ModelViewSet):
     """Вьюсет для жанров."""
@@ -57,6 +60,8 @@ class GenreViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
