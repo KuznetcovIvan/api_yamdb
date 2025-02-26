@@ -14,7 +14,7 @@ class User(AbstractUser):
     role = models.CharField(
         'Роль', max_length=10, choices=ROLES, default='user')
     username = models.CharField(
-        'Имя пользователя', max_length=150, unique=True, 
+        'Имя пользователя', max_length=150, unique=True,
         help_text='Максимум 150 символов. Только буквы, цифры и @/./+/-/_'
     )
     first_name = models.CharField('Имя', max_length=150, blank=True)

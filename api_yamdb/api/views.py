@@ -4,13 +4,14 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (
+    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import User
-from .permissions import IsAdminUser, IsAuthorOrReadOnly, IsAuthorOrReadOnly
+from .permissions import IsAdminUser, IsAuthorOrReadOnly
 from .serializers import (
     CategorySerializer, GenreSerializer, MeSerializer,
     SignUpSerializer, TitleCreateSerializer, TitleSerializer,
@@ -63,6 +64,7 @@ class GenreViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
@@ -170,4 +172,3 @@ class CommentViewSet(viewsets.ModelViewSet):
         review_id = self.kwargs.get('review_id')
         review = get_object_or_404(Review, id=review_id)
         serializer.save(author=self.request.user, review=review)
-
