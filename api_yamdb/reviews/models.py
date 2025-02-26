@@ -5,38 +5,70 @@ import datetime
 
 
 class Category(models.Model):
-    """Категории."""
-    name = models.CharField(max_length=256, unique=True)
-    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(
+        max_length=256,
+        unique=True
+    )
+    slug = models.SlugField(
+        unique=True,
+        max_length=50
+    )
+
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
 
 
 class Genre(models.Model):
-    """Жанры произведений."""
-    name = models.CharField(max_length=256, unique=True)
-    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(
+        max_length=256,
+        unique=True
+    )
+    slug = models.SlugField(
+        unique=True,
+        max_length=50
+    )
+
+    class Meta:
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
 
 
 class Title(models.Model):
-    """Произведения."""
     name = models.CharField(max_length=256)
     year = models.PositiveIntegerField(
-        validators=[MinValueValidator(1000), MaxValueValidator(datetime.datetime.now().year)],
-        help_text='Год выпуска не может быть больше текущего.'
+        validators=[
+            MinValueValidator(1000),
+            MaxValueValidator(datetime.datetime.now().year)
+        ],
     )
-    rating = models.IntegerField(
-        null=True, blank=True,
-        help_text='Рейтинг.'
+    description = models.TextField(
+        blank=True,
+        null=True
     )
-    description = models.TextField(blank=True, null=True)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL,
-                                 null=True, related_name='titles')
-    genre = models.ManyToManyField(Genre, related_name='titles')
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='titles'
+    )
+    genre = models.ManyToManyField(
+        Genre,
+        related_name='titles'
+    )
+
+    class Meta:
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
+        ordering = ('year',)
 
     def __str__(self):
         return self.name
