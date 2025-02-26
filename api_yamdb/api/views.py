@@ -1,5 +1,6 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -74,16 +75,21 @@ class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user, created = User.objects.get_or_create(
-            username=serializer.validated_data['username'],
-            email=serializer.validated_data['email'])
+        try:
+            user, _ = User.objects.get_or_create(**serializer.validated_data)
+        except IntegrityError:
+            return Response(
+                {'detail': 'Email или username уже занят'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         confirmation_code = default_token_generator.make_token(user)
         send_mail(
             subject='Код подтверждения YaMDb',
             message=f'Ваш код подтверждения: {confirmation_code}',
             from_email='noreply@yamdb.com',
-            recipient_list=(user.email,),
-            fail_silently=False,)
+            recipient_list=[user.email],
+            fail_silently=False
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -117,6 +123,7 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_permissions(self):
         if self.action in ('list', 'create', 'retrieve', 'update',
