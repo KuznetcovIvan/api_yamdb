@@ -26,7 +26,6 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     pagination_class = PageNumberPagination
     filter_backends = [filters.SearchFilter]
-    # Для фильтрации по полям (например, ?genre=rock)
     search_fields = ['name', 'year', 'category__slug', 'genre__slug']
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
@@ -115,7 +114,6 @@ class TokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'username'

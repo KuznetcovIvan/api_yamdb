@@ -1,7 +1,5 @@
 import re
-
 from rest_framework import serializers
-
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import User
 
@@ -29,7 +27,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('name', 'year', 'description', 'category', 'genre')
+        fields = ('id', 'name', 'year', 'description', 'category', 'genre')
 
 
 class TitleSerializer(serializers.ModelSerializer):
