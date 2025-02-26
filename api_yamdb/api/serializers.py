@@ -2,7 +2,7 @@ import re
 
 from rest_framework import serializers
 
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import User
 
 
@@ -85,3 +85,28 @@ class MeSerializer(UserSerializer):
 
     class Meta(UserSerializer.Meta):
         pass
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+    text = serializers.CharField(max_length=1000)
+    score = serializers.IntegerField(min_value=1, max_value=10)  # Ограничение оценки
+
+    class Meta:
+        model = Review
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+    text = serializers.CharField(max_length=1000)
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'text', 'author', 'pub_date')
