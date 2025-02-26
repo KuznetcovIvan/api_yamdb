@@ -2,68 +2,120 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, mixins, permissions, status, viewsets
+
+from rest_framework import (
+    filters, mixins, permissions, status, viewsets
+)
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (
-    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly)
+    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly, SAFE_METHODS
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
+from django_filters import rest_framework as django_filters
+
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import User
-from .permissions import IsAdminUser, IsAuthorOrReadOnly
+
+from .permissions import (
+    IsAdminUser,
+    IsAdminOrModeratorOrReadOnly,
+    IsAuthorOrReadOnly,
+    IsAdminOrReadOnly
+)
 from .serializers import (
-    CategorySerializer, GenreSerializer, MeSerializer,
-    SignUpSerializer, TitleCreateSerializer, TitleSerializer,
-    TokenSerializer, UserSerializer, ReviewSerializer,
+    CategorySerializer,
+    GenreSerializer,
+    MeSerializer,
+    SignUpSerializer,
+    TitleCreateSerializer,
+    TitleSerializer,
+    TokenSerializer,
+    UserSerializer,
+    ReviewSerializer,
     CommentSerializer
 )
+
+
+class TitleFilter(django_filters.FilterSet):
+    """Фильтр для произведений."""
+    genre = django_filters.CharFilter(field_name='genre__slug', lookup_expr='exact')
+    category = django_filters.CharFilter(field_name='category__slug', lookup_expr='exact')
+    name = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
+    year = django_filters.NumberFilter(field_name='year', lookup_expr='exact')
+
+    class Meta:
+        model = Title
+        fields = ['genre', 'category', 'name', 'year']
+
+
+class CreateListDestroyViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
+    """Базовый класс"""
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def partial_update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+def filter_titles(queryset, request):
+    """Фильтрации произведений."""
+    filter_set = TitleFilter(request.GET, queryset=queryset)
+    return filter_set.qs
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
     queryset = Title.objects.all()
+    serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'year', 'category__slug', 'genre__slug']
+    filter_backends = [django_filters.DjangoFilterBackend]
+    filterset_class = TitleFilter
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return TitleSerializer
         return TitleCreateSerializer
 
-    def get_permissions(self):
-        if self.action in ['create', 'partial_update', 'destroy']:
-            return [IsAdminUser()]
-        return [permissions.AllowAny()]
+    def list(self, request, *args, **kwargs):
+        queryset = filter_titles(self.get_queryset(), request)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
-    """Вьюсет для категорий."""
+class CategoryViewSet(CreateListDestroyViewSet):
+    """Вьюсет для категорий"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsAdminOrReadOnly]
     lookup_field = 'slug'
-    permission_classes = [IsAdminUser]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-
-class GenreViewSet(viewsets.ModelViewSet):
-    """Вьюсет для жанров."""
+class GenreViewSet(CreateListDestroyViewSet):
+    """Вьюсет для жанров"""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = [IsAdminOrReadOnly]
     lookup_field = 'slug'
-    permission_classes = [IsAdminUser]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
