@@ -3,15 +3,22 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
 import datetime
 
+MAX_LENGTH_NAME = 256
+MAX_LENGTH_SLUG = 50
+MIN_YEAR = 1000
+CURRENT_YEAR = datetime.datetime.now().year
+
 
 class Category(models.Model):
     name = models.CharField(
-        max_length=256,
-        unique=True
+        max_length=MAX_LENGTH_NAME,
+        unique=True,
+        verbose_name='Название'
     )
     slug = models.SlugField(
+        max_length=MAX_LENGTH_SLUG,
         unique=True,
-        max_length=50
+        verbose_name='Слаг'
     )
 
     class Meta:
@@ -25,12 +32,14 @@ class Category(models.Model):
 
 class Genre(models.Model):
     name = models.CharField(
-        max_length=256,
-        unique=True
+        max_length=MAX_LENGTH_NAME,
+        unique=True,
+        verbose_name='Название'
     )
     slug = models.SlugField(
+        max_length=MAX_LENGTH_SLUG,
         unique=True,
-        max_length=50
+        verbose_name='Слаг'
     )
 
     class Meta:
@@ -43,26 +52,33 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=256)
+    name = models.CharField(
+        max_length=MAX_LENGTH_NAME,
+        verbose_name='Название'
+    )
     year = models.PositiveIntegerField(
+        verbose_name='Год',
         validators=[
-            MinValueValidator(1000),
-            MaxValueValidator(datetime.datetime.now().year)
+            MinValueValidator(MIN_YEAR),
+            MaxValueValidator(CURRENT_YEAR)
         ],
     )
     description = models.TextField(
         blank=True,
-        null=True
+        null=True,
+        verbose_name='Описание'
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='titles'
+        related_name='titles',
+        verbose_name='Категория'
     )
     genre = models.ManyToManyField(
         Genre,
-        related_name='titles'
+        related_name='titles',
+        verbose_name='Жанр'
     )
 
     class Meta:
