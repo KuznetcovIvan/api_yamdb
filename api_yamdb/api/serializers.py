@@ -1,8 +1,7 @@
-import re
 import datetime
+import re
 
 from rest_framework import serializers
-
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import User
 
@@ -53,6 +52,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
+
         fields = (
             'id', 'name', 'year', 'rating',
             'description', 'category', 'genre'
@@ -71,15 +71,6 @@ class SignUpSerializer(serializers.Serializer):
                 'Допустимы только буквы, цифры и @/./+/-/_')
         return username
 
-    def validate(self, data):
-        if User.objects.filter(username=data['username']).exists():
-            raise serializers.ValidationError(
-                {'username': 'Это имя уже занято.'})
-        if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError(
-                {'email': 'Этот email уже занят.'})
-        return data
-
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
@@ -95,7 +86,11 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_username(self, username):
         if username.lower() == 'me':
             raise serializers.ValidationError('Имя "me" запрещено.')
+        if not re.match(r'^[\w.@+-]+$', username):
+            raise serializers.ValidationError(
+                'Допустимы только буквы, цифры и @/./+/-/_')
         return username
+
 
 class MeSerializer(UserSerializer):
     role = serializers.CharField(read_only=True)
@@ -110,7 +105,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         slug_field='username'
     )
     text = serializers.CharField(max_length=1000)
-    score = serializers.IntegerField(min_value=1, max_value=10)  # Ограничение оценки
+    score = serializers.IntegerField(min_value=1, max_value=10)
 
     class Meta:
         model = Review
