@@ -1,4 +1,6 @@
+import datetime
 import re
+
 from rest_framework import serializers
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import User
@@ -18,16 +20,28 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class TitleCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания/обновления произведения."""
+    id = serializers.IntegerField(read_only=True)
     category = serializers.SlugRelatedField(
-        queryset=Category.objects.all(), slug_field='slug'
+        queryset=Category.objects.all(),
+        slug_field='slug'
     )
     genre = serializers.SlugRelatedField(
-        queryset=Genre.objects.all(), slug_field='slug', many=True
+        queryset=Genre.objects.all(),
+        slug_field='slug',
+        many=True
     )
 
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'description', 'category', 'genre')
+
+    def validate_year(self, value):
+        current_year = datetime.datetime.now().year
+        if value > current_year:
+            raise serializers.ValidationError(
+                'Год выпуска не может быть больше текущего.'
+            )
+        return value
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -38,8 +52,11 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('id', 'name', 'year', 'rating',
-                  'description', 'category', 'genre')
+
+        fields = (
+            'id', 'name', 'year', 'rating',
+            'description', 'category', 'genre'
+        )
 
 
 class SignUpSerializer(serializers.Serializer):

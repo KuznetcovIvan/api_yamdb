@@ -30,9 +30,9 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_serializer_class(self):
-        if self.action in ['create', 'partial_update']:
-            return TitleCreateSerializer
-        return TitleSerializer
+        if self.action in ['list', 'retrieve']:
+            return TitleSerializer
+        return TitleCreateSerializer
 
     def get_permissions(self):
         if self.action in ['create', 'partial_update', 'destroy']:
@@ -45,7 +45,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     lookup_field = 'slug'
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminUser]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
@@ -58,7 +58,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     lookup_field = 'slug'
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminUser]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
