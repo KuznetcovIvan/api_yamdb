@@ -2,49 +2,35 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-
-from rest_framework import (
-    filters, mixins, permissions, status, viewsets
-)
+from django_filters import rest_framework as django_filters
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import (
-    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly, SAFE_METHODS
-)
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
-
-from django_filters import rest_framework as django_filters
-
-from reviews.models import Category, Genre, Title, Review, Comment
+from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
 
-from .permissions import (
-    IsAdminUser,
-    IsAuthorOrReadOnly,
-    IsAdminOrReadOnly
-)
-from .serializers import (
-    CategorySerializer,
-    GenreSerializer,
-    MeSerializer,
-    SignUpSerializer,
-    TitleCreateSerializer,
-    TitleSerializer,
-    TokenSerializer,
-    UserSerializer,
-    ReviewSerializer,
-    CommentSerializer
-)
+from .permissions import IsAdminOrReadOnly, IsAdminUser, IsAuthorOrReadOnly
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, MeSerializer, ReviewSerializer,
+                          SignUpSerializer, TitleCreateSerializer,
+                          TitleSerializer, TokenSerializer, UserSerializer)
 
 
 class TitleFilter(django_filters.FilterSet):
     """Фильтр для произведений."""
-    genre = django_filters.CharFilter(field_name='genre__slug', lookup_expr='exact')
-    category = django_filters.CharFilter(field_name='category__slug', lookup_expr='exact')
-    name = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
-    year = django_filters.NumberFilter(field_name='year', lookup_expr='exact')
+    genre = django_filters.CharFilter(
+        field_name='genre__slug', lookup_expr='exact')
+    category = django_filters.CharFilter(
+        field_name='category__slug', lookup_expr='exact')
+    name = django_filters.CharFilter(
+        field_name='name', lookup_expr='icontains')
+    year = django_filters.NumberFilter(
+        field_name='year', lookup_expr='exact')
 
     class Meta:
         model = Title
@@ -58,6 +44,7 @@ class CreateListDestroyViewSet(
     viewsets.GenericViewSet
 ):
     """Базовый класс"""
+
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -214,7 +201,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         title_id = self.kwargs.get('title_id')
         title = get_object_or_404(Title, id=title_id)
-        if Review.objects.filter(title=title, author=self.request.user).exists():
+        if Review.objects.filter(
+                title=title, author=self.request.user).exists():
             raise ValidationError("You have already reviewed this title.")
 
         serializer.save(author=self.request.user, title=title)
