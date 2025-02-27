@@ -125,6 +125,7 @@ class Review(models.Model):
                 name='unique_review'
             )
         ]
+        ordering = ('id',)
 
     def __str__(self):
         return f'Отзыв {self.author} на {self.title}'
@@ -151,6 +152,7 @@ class Comment(models.Model):
     class Meta:
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
+        ordering = ('id',)
 
     def __str__(self):
         return f'Комментарий {self.author} к отзыву {self.review}'
