@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Avg
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
 import datetime
@@ -80,6 +81,9 @@ class Title(models.Model):
         related_name='titles',
         verbose_name='Жанр'
     )
+
+    def calculate_rating(self):
+        return self.reviews.aggregate(Avg('score'))['score__avg']
 
     class Meta:
         verbose_name = 'Произведение'

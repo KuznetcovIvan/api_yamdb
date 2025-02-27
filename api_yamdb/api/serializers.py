@@ -48,15 +48,21 @@ class TitleSerializer(serializers.ModelSerializer):
     """Сериализатор для чтения произведения."""
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
-
         fields = (
             'id', 'name', 'year', 'rating',
             'description', 'category', 'genre'
         )
+
+    def get_rating(self, obj):
+        reviews = obj.reviews.all()
+        if reviews.exists():
+            total_score = sum(review.score for review in reviews)
+            return total_score / reviews.count()
+        return None
 
 
 class SignUpSerializer(serializers.Serializer):

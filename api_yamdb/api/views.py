@@ -8,6 +8,7 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import (
     AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly, SAFE_METHODS
 )
@@ -21,7 +22,6 @@ from users.models import User
 
 from .permissions import (
     IsAdminUser,
-    IsAdminOrModeratorOrReadOnly,
     IsAuthorOrReadOnly,
     IsAdminOrReadOnly
 )
@@ -66,6 +66,7 @@ class CreateListDestroyViewSet(
 
     def partial_update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 def filter_titles(queryset, request):
     """Фильтрации произведений."""
@@ -213,6 +214,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         title_id = self.kwargs.get('title_id')
         title = get_object_or_404(Title, id=title_id)
+        if Review.objects.filter(title=title, author=self.request.user).exists():
+            raise ValidationError("You have already reviewed this title.")
+
         serializer.save(author=self.request.user, title=title)
 
 
@@ -220,6 +224,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для комментариев."""
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
         review_id = self.kwargs.get('review_id')
