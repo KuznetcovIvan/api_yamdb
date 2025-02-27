@@ -14,27 +14,12 @@ from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
 
+from .filters import TitleFilter, filter_titles
 from .permissions import IsAdminOrReadOnly, IsAdminUser, IsAuthorOrReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, MeSerializer, ReviewSerializer,
                           SignUpSerializer, TitleCreateSerializer,
                           TitleSerializer, TokenSerializer, UserSerializer)
-
-
-class TitleFilter(django_filters.FilterSet):
-    """Фильтр для произведений."""
-    genre = django_filters.CharFilter(
-        field_name='genre__slug', lookup_expr='exact')
-    category = django_filters.CharFilter(
-        field_name='category__slug', lookup_expr='exact')
-    name = django_filters.CharFilter(
-        field_name='name', lookup_expr='icontains')
-    year = django_filters.NumberFilter(
-        field_name='year', lookup_expr='exact')
-
-    class Meta:
-        model = Title
-        fields = ['genre', 'category', 'name', 'year']
 
 
 class CreateListDestroyViewSet(
@@ -55,24 +40,18 @@ class CreateListDestroyViewSet(
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-def filter_titles(queryset, request):
-    """Фильтрации произведений."""
-    filter_set = TitleFilter(request.GET, queryset=queryset)
-    return filter_set.qs
-
-
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
-    filter_backends = [django_filters.DjangoFilterBackend]
+    filter_backends = (django_filters.DjangoFilterBackend,)
     filterset_class = TitleFilter
-    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
-    permission_classes = [IsAdminOrReadOnly]
+    http_method_names = ('get', 'post', 'patch', 'delete', 'head', 'options')
+    permission_classes = (IsAdminOrReadOnly,)
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ('list', 'retrieve'):
             return TitleSerializer
         return TitleCreateSerializer
 
@@ -90,23 +69,24 @@ class CategoryViewSet(CreateListDestroyViewSet):
     """Вьюсет для категорий"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = (IsAdminOrReadOnly,)
     lookup_field = 'slug'
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class GenreViewSet(CreateListDestroyViewSet):
     """Вьюсет для жанров"""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = (IsAdminOrReadOnly,)
     lookup_field = 'slug'
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    """Вьюсет для регистрации новых пользователей."""
     queryset = User.objects.all()
     serializer_class = SignUpSerializer
     permission_classes = (AllowAny,)
@@ -126,13 +106,14 @@ class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
             subject='Код подтверждения YaMDb',
             message=f'Ваш код подтверждения: {confirmation_code}',
             from_email='noreply@yamdb.com',
-            recipient_list=[user.email],
+            recipient_list=(user.email,),
             fail_silently=False
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    """Вьюсет для получения JWT-токена."""
     queryset = User.objects.all()
     serializer_class = TokenSerializer
     permission_classes = (AllowAny,)
@@ -154,10 +135,10 @@ class TokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    """Вьюсет для управления пользователями."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'username'
-    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
@@ -167,11 +148,11 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'create', 'retrieve', 'update',
                            'partial_update', 'destroy'):
             return (IsAdminUser(),)
-        return super().get_permissions()
+        return (IsAuthenticated(),)
 
     @action(
         detail=False,
-        methods=['get', 'patch'],
+        methods=('get', 'patch'),
         url_path='me',
         permission_classes=(IsAuthenticated,),
         serializer_class=MeSerializer
@@ -190,9 +171,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Вьюсет для отзывов."""
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = ('get', 'post', 'patch', 'delete')
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
 
     def get_queryset(self):
         title_id = self.kwargs.get('title_id')
@@ -211,8 +192,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для комментариев."""
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_queryset(self):
         review_id = self.kwargs.get('review_id')
