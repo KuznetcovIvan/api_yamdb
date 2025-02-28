@@ -15,8 +15,8 @@ from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
 
-from .filters import TitleFilter, filter_titles
-from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthorOrReadOnly
+from .filters import TitleFilter
+from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthorModeratorAdminOrReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, CurrentUserSerializer,
                           ReviewSerializer, SignUpSerializer,
@@ -154,7 +154,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     """Вьюсет для отзывов."""
     http_method_names = ('get', 'post', 'patch', 'delete')
     serializer_class = ReviewSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorModeratorAdminOrReadOnly)
 
     def get_queryset(self):
         title_id = self.kwargs['title_id']
@@ -174,7 +174,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для комментариев."""
     serializer_class = CommentSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorModeratorAdminOrReadOnly,)
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_queryset(self):
