@@ -16,7 +16,7 @@ from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
 
 from .filters import TitleFilter, filter_titles
-from .permissions import IsAdminOrReadOnly, IsAdminUser, IsAuthorOrReadOnly
+from .permissions import IsAdminOrReadOnly, IsAdmin, IsAuthorOrReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, CurrentUserSerializer,
                           ReviewSerializer, SignUpSerializer,
@@ -128,7 +128,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
     http_method_names = ('get', 'post', 'patch', 'delete')
-    permission_classes = (IsAdminUser,)
+    permission_classes = (IsAdmin,)
     
 
     @action(
@@ -174,7 +174,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для комментариев."""
     serializer_class = CommentSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly,)
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_queryset(self):
