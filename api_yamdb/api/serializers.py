@@ -1,9 +1,7 @@
-import datetime
-import re
-
+from api.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
+from api.validators import username_validator
 from rest_framework import serializers
-from reviews.models import Category, Comment, Genre, Review, Title
-from users.models import User
+from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -30,25 +28,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         slug_field='slug',
         many=True
     )
-
-    class Meta:
-        model = Title
-        fields = ('id', 'name', 'year', 'description', 'category', 'genre')
-
-    def validate_year(self, value):
-        current_year = datetime.datetime.now().year
-        if value > current_year:
-            raise serializers.ValidationError(
-                'Год выпуска не может быть больше текущего.'
-            )
-        return value
-
-
-class TitleSerializer(serializers.ModelSerializer):
-    """Сериализатор для чтения произведения."""
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
@@ -57,30 +37,48 @@ class TitleSerializer(serializers.ModelSerializer):
             'description', 'category', 'genre'
         )
 
-    def get_rating(self, obj):
-        reviews = obj.reviews.all()
-        if reviews.exists():
-            total_score = sum(review.score for review in reviews)
-            return total_score / reviews.count()
-        return None
+
+class TitleReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для чтения произведения."""
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
+    rating = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'rating',
+            'description', 'category', 'genre'
+        )
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        """Добавляем рейтинг в представление."""
+        representation = super().to_representation(instance)
+        if instance.rating is not None:
+            representation['rating'] = round(instance.rating, 1)
+        else:
+            representation['rating'] = None
+        return representation
 
 
 class SignUpSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=254)
-    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField(
+        max_length=EMAIL_MAX_LENGTH, required=True)
+    username = serializers.CharField(
+        max_length=USERNAME_MAX_LENGTH, required=True)
 
     def validate_username(self, username):
-        if username.lower() == 'me':
-            raise serializers.ValidationError('Имя "me" запрещено.')
-        if not re.match(r'^[\w.@+-]+$', username):
-            raise serializers.ValidationError(
-                'Допустимы только буквы, цифры и @/./+/-/_')
-        return username
+        return username_validator(username)
 
 
 class TokenSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
+    username = serializers.CharField(
+        max_length=USERNAME_MAX_LENGTH, required=True)
     confirmation_code = serializers.CharField()
+
+    def validate_username(self, username):
+        return username_validator(username)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -90,19 +88,12 @@ class UserSerializer(serializers.ModelSerializer):
             'username', 'email', 'first_name', 'last_name', 'bio', 'role')
 
     def validate_username(self, username):
-        if username.lower() == 'me':
-            raise serializers.ValidationError('Имя "me" запрещено.')
-        if not re.match(r'^[\w.@+-]+$', username):
-            raise serializers.ValidationError(
-                'Допустимы только буквы, цифры и @/./+/-/_')
-        return username
+        return username_validator(username)
 
 
-class MeSerializer(UserSerializer):
-    role = serializers.CharField(read_only=True)
-
+class CurrentUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
-        pass
+        read_only_fields = ('role',)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -110,12 +101,31 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='username'
     )
-    text = serializers.CharField(max_length=1000)
-    score = serializers.IntegerField(min_value=1, max_value=10)
 
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('id', 'author', 'pub_date')
+
+    def validate(self, data):
+        """Проверка, что пользователь не оставлял
+        отзыв на это произведение ранее."""
+        request = self.context.get('request')
+        if request and request.method == 'PATCH':
+            return data
+        title_id = self.context['view'].kwargs.get('title_id')
+        if Review.objects.filter(
+                title_id=title_id, author=request.user).exists():
+            raise serializers.ValidationError(
+                'You have already reviewed this title.')
+        return data
+
+    def update(self, instance, validated_data):
+        """Обновление отзыва с автоматическим заполнением поля автора."""
+        instance.text = validated_data.get('text', instance.text)
+        instance.score = validated_data.get('score', instance.score)
+        instance.save()
+        return instance
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -123,8 +133,14 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='username'
     )
-    text = serializers.CharField(max_length=1000)
 
     class Meta:
         model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
+
+
+class MeSerializer(UserSerializer):
+    role = serializers.CharField(read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        pass

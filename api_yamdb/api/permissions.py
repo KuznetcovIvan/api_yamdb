@@ -1,34 +1,25 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
-class IsAdminUser(BasePermission):
+class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_authenticated and (
-            request.user.role == 'admin' or request.user.is_superuser)
+        return (request.user.is_authenticated and request.user.is_admin()
+                or False)
 
 
 class IsAdminOrModeratorOrReadOnly(BasePermission):
     def has_permission(self, request, view):
-        return (
-            request.method in SAFE_METHODS
-            or request.user.is_authenticated
-            and request.user.role in ['admin', 'moderator']
-        )
+        return (request.method in SAFE_METHODS or request.user.is_authenticated
+                and request.is_moderator_or_admin())
 
 
-class IsAuthorOrReadOnly(BasePermission):
-    """Права доступа: только автор может редактировать или удалять объект."""
+class IsAuthorModeratorAdminOrReadOnly(BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.method in SAFE_METHODS:
-            return True
-        return (obj.author == request.user
-                or request.user.role in ['admin', 'moderator'])
+        return (request.method in SAFE_METHODS or obj.author == request.user
+                or request.user.is_moderator_or_admin())
 
 
-class IsAdminOrReadOnly(BasePermission):
+class IsAdminOrReadOnly(IsAdmin):
     def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return request.user.is_authenticated and (
-            request.user.role == 'admin' or request.user.is_superuser
-        )
+        return (request.method in SAFE_METHODS
+                or super().has_permission(request, view))

@@ -16,9 +16,3 @@ class TitleFilter(django_filters.FilterSet):
     class Meta:
         model = Title
         fields = ('genre', 'category', 'name', 'year')
-
-
-def filter_titles(queryset, request):
-    """Применяет фильтрацию к queryset произведений."""
-    filter_set = TitleFilter(request.GET, queryset=queryset)
-    return filter_set.qs

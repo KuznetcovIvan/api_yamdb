@@ -1,17 +1,11 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 
-from .models import Category, Comment, Genre, Review, Title
-
-
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'slug')
-    search_fields = ('name',)
-    prepopulated_fields = {'slug': ('name',)}
+from .models import Category, Comment, Genre, Review, Title, User
 
 
-@admin.register(Genre)
-class GenreAdmin(admin.ModelAdmin):
+@admin.register(Category, Genre)
+class CategoryGenreAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'slug')
     search_fields = ('name',)
     prepopulated_fields = {'slug': ('name',)}
@@ -36,3 +30,8 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ('id', 'review', 'author', 'pub_date')
     search_fields = ('review__title__name', 'author__username')
     list_filter = ('pub_date',)
+
+
+UserAdmin.fieldsets += (('О пользователе', {'fields': ('bio', 'role')}),)
+
+admin.site.register(User, UserAdmin)
