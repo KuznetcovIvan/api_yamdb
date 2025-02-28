@@ -1,24 +1,34 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
 
-ROLES = (
-    ('user', 'Аутентифицированный пользователь'),
-    ('moderator', 'Модератор'),
-    ('admin', 'Администратор'),
-)
+from api.constants import ROLE_MAX_LENGTH, ROLES
 
 
 class User(AbstractUser):
     email = models.EmailField('Почта', max_length=254, unique=True)
     bio = models.TextField('Биография', blank=True)
     role = models.CharField(
-        'Роль', max_length=10, choices=ROLES, default='user')
+        'Роль', max_length=ROLE_MAX_LENGTH, choices=ROLES, default='user')
     username = models.CharField(
-        'Имя пользователя', max_length=150, unique=True,
-        help_text='Максимум 150 символов. Только буквы, цифры и @/./+/-/_'
+        'Логин', max_length=150, unique=True,
+        help_text='Только буквы, цифры и @/./+/-/_',
+        validators=(RegexValidator(
+            regex=r'^[\w.@+-]+$',
+            message='Допустимы только буквы, цифры и @/./+/-/_'),)
     )
     first_name = models.CharField('Имя', max_length=150, blank=True)
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
+
+    def clean(self):
+        super().clean()
+        if self.username.lower() == 'me':
+            raise ValidationError({'username': 'Имя "me" запрещено.'})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username
