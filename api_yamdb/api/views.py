@@ -19,7 +19,7 @@ from .permissions import IsAdminOrReadOnly, IsAdminUser, IsAuthorOrReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, MeSerializer, ReviewSerializer,
                           SignUpSerializer, TitleCreateSerializer,
-                          TitleSerializer, TokenSerializer, UserSerializer)
+                          TitleReadSerializer, TokenSerializer, UserSerializer)
 
 
 class CreateListDestroyViewSet(
@@ -29,21 +29,13 @@ class CreateListDestroyViewSet(
     viewsets.GenericViewSet
 ):
     """Базовый класс"""
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def partial_update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    pass
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
+    serializer_class = TitleReadSerializer
     pagination_class = PageNumberPagination
     filter_backends = (django_filters.DjangoFilterBackend,)
     filterset_class = TitleFilter
@@ -51,38 +43,29 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
 
     def get_serializer_class(self):
-        if self.action in ('list', 'retrieve'):
-            return TitleSerializer
+        if self.action in ['list', 'retrieve']:
+            return TitleReadSerializer
         return TitleCreateSerializer
 
-    def list(self, request, *args, **kwargs):
-        queryset = filter_titles(self.get_queryset(), request)
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+
+class BaseSlugViewSet(CreateListDestroyViewSet):
+    """Базовый вьюсет для категорий и жанров."""
+    permission_classes = (IsAdminOrReadOnly,)
+    lookup_field = 'slug'
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
-class CategoryViewSet(CreateListDestroyViewSet):
-    """Вьюсет для категорий"""
+class CategoryViewSet(BaseSlugViewSet):
+    """Вьюсет для категорий."""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    lookup_field = 'slug'
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
-class GenreViewSet(CreateListDestroyViewSet):
-    """Вьюсет для жанров"""
+class GenreViewSet(BaseSlugViewSet):
+    """Вьюсет для жанров."""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    lookup_field = 'slug'
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
 class SignUpViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):

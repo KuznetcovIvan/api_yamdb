@@ -3,15 +3,8 @@ from django.contrib import admin
 from .models import Category, Comment, Genre, Review, Title
 
 
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'slug')
-    search_fields = ('name',)
-    prepopulated_fields = {'slug': ('name',)}
-
-
-@admin.register(Genre)
-class GenreAdmin(admin.ModelAdmin):
+@admin.register(Category, Genre)
+class CategoryGenreAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'slug')
     search_fields = ('name',)
     prepopulated_fields = {'slug': ('name',)}
