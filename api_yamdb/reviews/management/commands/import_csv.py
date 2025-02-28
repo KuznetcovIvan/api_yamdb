@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
 from reviews.models import Category, Comment, Genre, Review, Title
-from users.models import User
+from reviews.models import User
 
 DATA_PATH = os.path.join(settings.BASE_DIR, 'static', 'data')
 

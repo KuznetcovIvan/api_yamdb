@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 
-from .models import Category, Comment, Genre, Review, Title
+from .models import Category, Comment, Genre, Review, Title, User
 
 
 @admin.register(Category, Genre)
@@ -29,3 +30,8 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ('id', 'review', 'author', 'pub_date')
     search_fields = ('review__title__name', 'author__username')
     list_filter = ('pub_date',)
+
+
+UserAdmin.fieldsets += (('О пользователе', {'fields': ('bio', 'role')}),)
+
+admin.site.register(User, UserAdmin)

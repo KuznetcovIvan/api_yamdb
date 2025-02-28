@@ -1,13 +1,20 @@
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import Avg
 from django.utils.timezone import now
 
 from api.constants import (
-    MAX_LENGTH_NAME, MAX_LENGTH_SLUG, MAX_LENGTH_STR,
-    MIN_SCORE, MAX_SCORE
+    BAD_USERNAME,
+    EMAIL_MAX_LENGTH,
+    MAX_LENGTH_NAME,
+    MAX_LENGTH_SLUG,
+    MAX_LENGTH_STR,
+    ROLE_MAX_LENGTH,
+    ROLES,
+    USERNAME_MAX_LENGTH,
 )
 
 
@@ -26,12 +33,12 @@ class SlugNameBaseModel(models.Model):
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
         unique=True,
-        verbose_name='Название'
+        verbose_name='Название',
     )
     slug = models.SlugField(
         max_length=MAX_LENGTH_SLUG,
         unique=True,
-        verbose_name='Слаг'
+        verbose_name='Слаг',
     )
 
     class Meta:
@@ -44,6 +51,7 @@ class SlugNameBaseModel(models.Model):
 
 class Category(SlugNameBaseModel):
     """Категория."""
+
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
@@ -52,6 +60,7 @@ class Category(SlugNameBaseModel):
 
 class Genre(SlugNameBaseModel):
     """Жанр."""
+
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
@@ -62,27 +71,28 @@ class Title(models.Model):
     """Произведения."""
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
-        verbose_name='Название'
+        verbose_name='Название',
     )
     year = models.PositiveSmallIntegerField(
         verbose_name='Год',
-        validators=[validate_year]
+        validators=[validate_year],
     )
     description = models.TextField(
         blank=True,
         null=True,
-        verbose_name='Описание'
+        verbose_name='Описание',
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        verbose_name='Категория'
+        verbose_name='Категория',
     )
     genre = models.ManyToManyField(
         Genre,
-        verbose_name='Жанр'
+        verbose_name='Жанр',
     )
+
     @property
     def rating(self):
         """Вычисляет средний рейтинг произведения на основе отзывов."""
@@ -92,7 +102,7 @@ class Title(models.Model):
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
-        ordering = ('-year', 'name',)
+        ordering = ('-year', 'name')
 
     def __str__(self):
         return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
@@ -105,9 +115,12 @@ class BaseReviewComment(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='%(class)s_related',
-        verbose_name='Автор'
+        verbose_name='Автор',
     )
-    pub_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата публикации')
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата публикации',
+    )
 
     class Meta:
         abstract = True
@@ -123,11 +136,11 @@ class Review(BaseReviewComment):
         'Title',
         on_delete=models.CASCADE,
         related_name='reviews',
-        verbose_name='Произведение'
+        verbose_name='Произведение',
     )
     score = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)],
-        verbose_name='Оценка'
+        verbose_name='Оценка',
     )
 
     class Meta(BaseReviewComment.Meta):
@@ -136,8 +149,8 @@ class Review(BaseReviewComment):
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
-                name='unique_review'
-            )
+                name='unique_review',
+            ),
         ]
 
     def __str__(self):
@@ -150,7 +163,7 @@ class Comment(BaseReviewComment):
         'Review',
         on_delete=models.CASCADE,
         related_name='comments',
-        verbose_name='Отзыв'
+        verbose_name='Отзыв',
     )
 
     class Meta(BaseReviewComment.Meta):
@@ -159,3 +172,76 @@ class Comment(BaseReviewComment):
 
     def __str__(self):
         return f'Комментарий {self.author} к отзыву {self.review}'
+
+
+class User(AbstractUser):
+    email = models.EmailField(
+        'Почта',
+        max_length=EMAIL_MAX_LENGTH,
+        unique=True,
+    )
+    bio = models.TextField(
+        'Биография',
+        blank=True,
+    )
+    role = models.CharField(
+        'Роль',
+        max_length=ROLE_MAX_LENGTH,
+        choices=ROLES,
+        default='user',
+    )
+    username = models.CharField(
+        'Логин',
+        max_length=USERNAME_MAX_LENGTH,
+        unique=True,
+        help_text='Только буквы, цифры и @/./+/-/_',
+        validators=[
+            RegexValidator(
+                regex=r'^[\w.@+-]+$',
+                message='Допустимы только буквы, цифры и @/./+/-/_',
+            ),
+        ],
+    )
+    first_name = models.CharField(
+        'Имя',
+        max_length=150,
+        blank=True,
+    )
+    last_name = models.CharField(
+        'Фамилия',
+        max_length=150,
+        blank=True,
+    )
+    confirmation_code = models.CharField(
+        'Код подтверждения',
+        max_length=6,
+        blank=True,
+        null=True,
+    )
+
+    def clean(self):
+        super().clean()
+        if self.username == BAD_USERNAME:
+            raise ValidationError(
+                {'username': f'Имя "{BAD_USERNAME}" запрещено.'}
+            )
+
+    def is_admin(self):
+        """Проверяет, является ли пользователь администратором."""
+        return self.role == 'admin' or self.is_superuser or self.is_staff
+
+    def is_moderator_or_admin(self):
+        """Проверяет, является ли пользователь модератором или администратором."""
+        return (
+            self.role in ('admin', 'moderator')
+            or self.is_superuser
+            or self.is_staff
+        )
+
+    def __str__(self):
+        return self.username
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('username',)

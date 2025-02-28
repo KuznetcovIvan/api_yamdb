@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from reviews.models import Category, Comment, Genre, Review, Title
-from users.models import User
+from reviews.models import User
 from api.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
 from api.validators import username_validator
 
