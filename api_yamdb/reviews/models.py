@@ -1,21 +1,14 @@
+from api.constants import (BAD_USERNAME, EMAIL_MAX_LENGTH, MAX_LENGTH_NAME,
+                           MAX_LENGTH_SLUG, MAX_LENGTH_STR, ROLE_MAX_LENGTH,
+                           ROLES, USERNAME_MAX_LENGTH)
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.core.validators import (MaxValueValidator, MinValueValidator,
+                                    RegexValidator)
 from django.db import models
 from django.db.models import Avg
 from django.utils.timezone import now
-
-from api.constants import (
-    BAD_USERNAME,
-    EMAIL_MAX_LENGTH,
-    MAX_LENGTH_NAME,
-    MAX_LENGTH_SLUG,
-    MAX_LENGTH_STR,
-    ROLE_MAX_LENGTH,
-    ROLES,
-    USERNAME_MAX_LENGTH,
-)
 
 
 def validate_year(year):
@@ -231,7 +224,8 @@ class User(AbstractUser):
         return self.role == 'admin' or self.is_superuser or self.is_staff
 
     def is_moderator_or_admin(self):
-        """Проверяет, является ли пользователь модератором или администратором."""
+        """Проверяет, является ли пользователь
+        модератором или администратором."""
         return (
             self.role in ('admin', 'moderator')
             or self.is_superuser

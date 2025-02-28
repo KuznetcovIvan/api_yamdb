@@ -1,8 +1,7 @@
 import re
 
-from rest_framework.exceptions import ValidationError
-
 from api.constants import BAD_USERNAME
+from rest_framework.exceptions import ValidationError
 
 
 def username_validator(username):

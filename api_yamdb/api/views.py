@@ -8,30 +8,21 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (
-    AllowAny,
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly,
-)
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 from .constants import BAD_USERNAME
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly
-from .serializers import (
-    CategorySerializer,
-    CommentSerializer,
-    CurrentUserSerializer,
-    GenreSerializer,
-    ReviewSerializer,
-    SignUpSerializer,
-    TitleCreateSerializer,
-    TitleReadSerializer,
-    TokenSerializer,
-    UserSerializer,
-)
+from .permissions import (IsAdmin, IsAdminOrReadOnly,
+                          IsAuthorModeratorAdminOrReadOnly)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          CurrentUserSerializer, GenreSerializer,
+                          ReviewSerializer, SignUpSerializer,
+                          TitleCreateSerializer, TitleReadSerializer,
+                          TokenSerializer, UserSerializer)
 
 
 class CreateListDestroyViewSet(
@@ -83,13 +74,15 @@ class GenreViewSet(BaseSlugViewSet):
 @api_view(['POST'])
 @permission_classes((AllowAny,))
 def signup(request):
-    """Регистрирует нового пользователя и отправляет проверочный код на email."""
+    """Регистрирует нового пользователя и
+    отправляет проверочный код на email."""
     serializer = SignUpSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     try:
         user, _ = User.objects.get_or_create(**serializer.validated_data)
     except IntegrityError:
-        if User.objects.filter(email=serializer.validated_data['email']).exists():
+        if User.objects.filter(
+                email=serializer.validated_data['email']).exists():
             raise ValidationError({'email': 'Этот email уже занят.'})
         if User.objects.filter(
             username=serializer.validated_data['username']
@@ -117,9 +110,12 @@ def token(request):
     """Выдаёт JWT-токен после проверки электронной почты."""
     serializer = TokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    user = get_object_or_404(User, username=serializer.validated_data['username'])
-    if user.confirmation_code != serializer.validated_data['confirmation_code']:
-        raise ValidationError({'confirmation_code': 'Неверный код подтверждения'})
+    user = get_object_or_404(
+        User, username=serializer.validated_data['username'])
+    if (user.confirmation_code
+            != serializer.validated_data['confirmation_code']):
+        raise ValidationError(
+            {'confirmation_code': 'Неверный код подтверждения'})
     return Response(
         {'token': str(AccessToken.for_user(user))},
         status=status.HTTP_200_OK,
@@ -152,7 +148,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 CurrentUserSerializer(user).data,
                 status=status.HTTP_200_OK,
             )
-        serializer = CurrentUserSerializer(user, data=request.data, partial=True)
+        serializer = CurrentUserSerializer(
+            user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -176,7 +173,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title_id = self.kwargs['title_id']
         title = get_object_or_404(Title, id=title_id)
 
-        if Review.objects.filter(title=title, author=self.request.user).exists():
+        if Review.objects.filter(
+                title=title, author=self.request.user).exists():
             raise ValidationError('You have already reviewed this title.')
 
         serializer.save(author=self.request.user, title=title)
