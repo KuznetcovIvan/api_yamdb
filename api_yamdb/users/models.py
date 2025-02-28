@@ -30,7 +30,18 @@ class User(AbstractUser):
         super().clean()
         if self.username == BAD_USERNAME:
             raise ValidationError(
-                {'username': f'Имя "{BAD_USERNAME}" запрещено.'})
+                {'username': f'Имя "{BAD_USERNAME}" запрещено.'})     
+
+    def is_admin(self):
+        """Проверяет, является ли пользователь
+        администратором."""
+        return self.role == 'admin' or self.is_superuser or self.is_staff
+
+    def is_moderator_or_admin(self):
+        """Проверяет, является ли пользователь
+        модератором или администратором."""
+        return (self.role in ('admin', 'moderator')
+                or self.is_superuser or self.is_staff)
 
     def __str__(self):
         return self.username
