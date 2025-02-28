@@ -3,15 +3,25 @@ import datetime
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import Avg
+from django.utils.timezone import now
 
 MAX_LENGTH_NAME = 256
 MAX_LENGTH_SLUG = 50
-MIN_YEAR = 1000
-CURRENT_YEAR = datetime.datetime.now().year
+MAX_STR_LENGTH = 50
 
 
-class Category(models.Model):
+def validate_year(year):
+    """Проверка года."""
+    current_year = now().year
+    if year > current_year:
+        raise ValidationError(
+            f'Год не может быть больше текущего ({current_year})'
+        )
+    return year
+
+
+class SlugNameBaseModel(models.Model):
+    """Базовая слаг модель."""
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
         unique=True,
@@ -24,46 +34,38 @@ class Category(models.Model):
     )
 
     class Meta:
+        abstract = True
+        ordering = ('name',)
+
+    def __str__(self):
+        return self.name
+
+
+class Category(SlugNameBaseModel):
+    """Категория."""
+
+    class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
-        ordering = ('name',)
-
-    def __str__(self):
-        return self.name
 
 
-class Genre(models.Model):
-    name = models.CharField(
-        max_length=MAX_LENGTH_NAME,
-        unique=True,
-        verbose_name='Название'
-    )
-    slug = models.SlugField(
-        max_length=MAX_LENGTH_SLUG,
-        unique=True,
-        verbose_name='Слаг'
-    )
+class Genre(SlugNameBaseModel):
+    """Жанр."""
 
-    class Meta:
+    class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
-        ordering = ('name',)
-
-    def __str__(self):
-        return self.name
 
 
 class Title(models.Model):
+    """Произведения."""
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
         verbose_name='Название'
     )
-    year = models.PositiveIntegerField(
+    year = models.PositiveSmallIntegerField(
         verbose_name='Год',
-        validators=[
-            MinValueValidator(MIN_YEAR),
-            MaxValueValidator(CURRENT_YEAR)
-        ],
+        validators=[validate_year]
     )
     description = models.TextField(
         blank=True,
@@ -83,16 +85,13 @@ class Title(models.Model):
         verbose_name='Жанр'
     )
 
-    def calculate_rating(self):
-        return self.reviews.aggregate(Avg('score'))['score__avg']
-
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
         ordering = ('-year', 'name',)
 
     def __str__(self):
-        return self.name
+        return f'{self.name[:MAX_STR_LENGTH]}, {self.year} года.'
 
 
 class Review(models.Model):
