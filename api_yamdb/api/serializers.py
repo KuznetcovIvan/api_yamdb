@@ -43,16 +43,24 @@ class TitleReadSerializer(serializers.ModelSerializer):
     """Сериализатор для чтения произведения."""
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Title
-
         fields = (
             'id', 'name', 'year', 'rating',
             'description', 'category', 'genre'
         )
         read_only_fields = fields
+
+    def to_representation(self, instance):
+        """Добавляем рейтинг в представление."""
+        representation = super().to_representation(instance)
+        if instance.rating is not None:
+            representation['rating'] = round(instance.rating, 1)
+        else:
+            representation['rating'] = None
+        return representation
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -94,12 +102,28 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='username'
     )
-    text = serializers.CharField(max_length=1000)
-    score = serializers.IntegerField(min_value=1, max_value=10)
 
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('id', 'author', 'pub_date')
+
+    def validate(self, data):
+        """Проверка, что пользователь не оставлял отзыв на это произведение ранее."""
+        request = self.context.get('request')
+        if request and request.method == 'PATCH':
+            return data
+        title_id = self.context['view'].kwargs.get('title_id')
+        if Review.objects.filter(title_id=title_id, author=request.user).exists():
+            raise serializers.ValidationError('You have already reviewed this title.')
+        return data
+
+    def update(self, instance, validated_data):
+        """Обновление отзыва с автоматическим заполнением поля автора."""
+        instance.text = validated_data.get('text', instance.text)
+        instance.score = validated_data.get('score', instance.score)
+        instance.save()
+        return instance
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -107,8 +131,14 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field='username'
     )
-    text = serializers.CharField(max_length=1000)
 
     class Meta:
         model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
+
+
+class MeSerializer(UserSerializer):
+    role = serializers.CharField(read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        pass

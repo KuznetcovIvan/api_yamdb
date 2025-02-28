@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Avg
 from django.utils.timezone import now
 
 from api.constants import (
@@ -82,6 +83,11 @@ class Title(models.Model):
         Genre,
         verbose_name='Жанр'
     )
+    @property
+    def rating(self):
+        """Вычисляет средний рейтинг произведения на основе отзывов."""
+        result = self.reviews.aggregate(Avg('score'))
+        return result['score__avg']
 
     class Meta:
         verbose_name = 'Произведение'
@@ -92,7 +98,26 @@ class Title(models.Model):
         return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
 
 
-class Review(models.Model):
+class BaseReviewComment(models.Model):
+    """Базовый класс для отзывов и комментариев."""
+    text = models.TextField()
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='%(class)s_related',
+        verbose_name='Автор'
+    )
+    pub_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата публикации')
+
+    class Meta:
+        abstract = True
+        ordering = ('-pub_date',)
+
+    def __str__(self):
+        return f'{self.author} - {self.text[:20]}'
+
+
+class Review(BaseReviewComment):
     """Отзывы на произведения."""
     title = models.ForeignKey(
         'Title',
@@ -100,24 +125,12 @@ class Review(models.Model):
         related_name='reviews',
         verbose_name='Произведение'
     )
-    text = models.TextField(verbose_name='Текст отзыва')
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='reviews',
-        verbose_name='Автор'
-    )
     score = models.IntegerField(
-        validators=[
-            MinValueValidator(MIN_SCORE),
-            MaxValueValidator(MAX_SCORE)
-        ],
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
         verbose_name='Оценка'
     )
-    pub_date = models.DateTimeField(auto_now_add=True,
-                                    verbose_name='Дата публикации')
 
-    class Meta:
+    class Meta(BaseReviewComment.Meta):
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
         constraints = [
@@ -126,13 +139,12 @@ class Review(models.Model):
                 name='unique_review'
             )
         ]
-        ordering = ('id',)
 
     def __str__(self):
         return f'Отзыв {self.author} на {self.title}'
 
 
-class Comment(models.Model):
+class Comment(BaseReviewComment):
     """Комментарии к отзывам."""
     review = models.ForeignKey(
         'Review',
@@ -140,20 +152,10 @@ class Comment(models.Model):
         related_name='comments',
         verbose_name='Отзыв'
     )
-    text = models.TextField(verbose_name='Текст комментария')
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Автор'
-    )
-    pub_date = models.DateTimeField(auto_now_add=True,
-                                    verbose_name='Дата публикации')
 
-    class Meta:
+    class Meta(BaseReviewComment.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
-        ordering = ('id',)
 
     def __str__(self):
         return f'Комментарий {self.author} к отзыву {self.review}'
