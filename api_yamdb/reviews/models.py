@@ -1,13 +1,13 @@
-import datetime
-
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.timezone import now
 
-MAX_LENGTH_NAME = 256
-MAX_LENGTH_SLUG = 50
-MAX_STR_LENGTH = 50
+from api.constants import (
+    MAX_LENGTH_NAME, MAX_LENGTH_SLUG, MAX_LENGTH_STR,
+    MIN_SCORE, MAX_SCORE
+)
 
 
 def validate_year(year):
@@ -43,18 +43,18 @@ class SlugNameBaseModel(models.Model):
 
 class Category(SlugNameBaseModel):
     """Категория."""
-
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
+        default_related_name = 'titles'
 
 
 class Genre(SlugNameBaseModel):
     """Жанр."""
-
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
+        default_related_name = 'titles'
 
 
 class Title(models.Model):
@@ -76,12 +76,10 @@ class Title(models.Model):
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='titles',
         verbose_name='Категория'
     )
     genre = models.ManyToManyField(
         Genre,
-        related_name='titles',
         verbose_name='Жанр'
     )
 
@@ -91,7 +89,7 @@ class Title(models.Model):
         ordering = ('-year', 'name',)
 
     def __str__(self):
-        return f'{self.name[:MAX_STR_LENGTH]}, {self.year} года.'
+        return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
 
 
 class Review(models.Model):
@@ -110,7 +108,10 @@ class Review(models.Model):
         verbose_name='Автор'
     )
     score = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        validators=[
+            MinValueValidator(MIN_SCORE),
+            MaxValueValidator(MAX_SCORE)
+        ],
         verbose_name='Оценка'
     )
     pub_date = models.DateTimeField(auto_now_add=True,
