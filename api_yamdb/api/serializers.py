@@ -1,8 +1,8 @@
-import re
-
 from rest_framework import serializers
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
+from api.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
+from api.validators import username_validator
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -56,21 +56,22 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=254)
-    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField(
+        max_length=EMAIL_MAX_LENGTH, required=True)
+    username = serializers.CharField(
+        max_length=USERNAME_MAX_LENGTH, required=True)
 
     def validate_username(self, username):
-        if username.lower() == 'me':
-            raise serializers.ValidationError('Имя "me" запрещено.')
-        if not re.match(r'^[\w.@+-]+$', username):
-            raise serializers.ValidationError(
-                'Допустимы только буквы, цифры и @/./+/-/_')
-        return username
+        return username_validator(username)
 
 
 class TokenSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
+    username = serializers.CharField(
+        max_length=USERNAME_MAX_LENGTH, required=True)
     confirmation_code = serializers.CharField()
+
+    def validate_username(self, username):
+        return username_validator(username)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -80,19 +81,12 @@ class UserSerializer(serializers.ModelSerializer):
             'username', 'email', 'first_name', 'last_name', 'bio', 'role')
 
     def validate_username(self, username):
-        if username.lower() == 'me':
-            raise serializers.ValidationError('Имя "me" запрещено.')
-        if not re.match(r'^[\w.@+-]+$', username):
-            raise serializers.ValidationError(
-                'Допустимы только буквы, цифры и @/./+/-/_')
-        return username
+        return username_validator(username)
 
 
-class MeSerializer(UserSerializer):
-    role = serializers.CharField(read_only=True)
-
+class CurrentUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
-        pass
+        read_only_fields = ('role',)
 
 
 class ReviewSerializer(serializers.ModelSerializer):

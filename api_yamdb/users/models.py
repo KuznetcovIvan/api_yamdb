@@ -3,7 +3,8 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 
-from api.constants import ROLE_MAX_LENGTH, ROLES
+from api.constants import (
+    ROLE_MAX_LENGTH, ROLES, USERNAME_MAX_LENGTH, BAD_USERNAME)
 
 
 class User(AbstractUser):
@@ -12,7 +13,7 @@ class User(AbstractUser):
     role = models.CharField(
         'Роль', max_length=ROLE_MAX_LENGTH, choices=ROLES, default='user')
     username = models.CharField(
-        'Логин', max_length=150, unique=True,
+        'Логин', max_length=USERNAME_MAX_LENGTH, unique=True,
         help_text='Только буквы, цифры и @/./+/-/_',
         validators=(RegexValidator(
             regex=r'^[\w.@+-]+$',
@@ -23,8 +24,9 @@ class User(AbstractUser):
 
     def clean(self):
         super().clean()
-        if self.username.lower() == 'me':
-            raise ValidationError({'username': 'Имя "me" запрещено.'})
+        if self.username == BAD_USERNAME:
+            raise ValidationError(
+                {'username': f'Имя "{BAD_USERNAME}" запрещено.'})
 
     def save(self, *args, **kwargs):
         self.full_clean()
