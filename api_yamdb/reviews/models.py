@@ -12,6 +12,7 @@ from .constants import (
     EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
     MAX_LENGTH_STR, ROLES, USERNAME_MAX_LENGTH
 )
+from .validators import reserved_username_validator
 
 
 def validate_year(year):
@@ -188,7 +189,7 @@ class User(AbstractUser):
             RegexValidator(
                 regex=r'^[\w.@+-]+$',
                 message='Допустимы только буквы, цифры и @/./+/-/_',
-            ),
+            ), reserved_username_validator
         ],
     )
     first_name = models.CharField(
@@ -208,26 +209,14 @@ class User(AbstractUser):
         null=True,
     )
 
-    def clean(self):
-        """Проверка на использование запрещенного имени пользователя."""
-        super().clean()
-        if self.username == RESERVED_USERNAME:
-            raise ValidationError(
-                {'username': f'Имя "{RESERVED_USERNAME}" запрещено.'}
-            )
-
     def is_admin(self):
         """Проверяет, является ли пользователь администратором."""
-        return self.role == 'admin' or self.is_superuser or self.is_staff
+        return self.role == 'admin' or self.is_staff
 
-    def is_moderator_or_admin(self):
-        """Проверяет, является ли пользователь модератором или администратором."""
-        return (
-            self.role in ('admin', 'moderator')
-            or self.is_superuser
-            or self.is_staff
-        )
-
+    def is_moderator(self):
+        """Проверяет, является ли пользователь модератором. """
+        return self.role == 'moderator'
+        
     def __str__(self):
         return self.username
 

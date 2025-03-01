@@ -19,14 +19,13 @@ from api_yamdb.settings import RESERVED_USERNAME
 from reviews.models import Category, Comment, Genre, Review, Title, User
 from .filters import TitleFilter
 from .permissions import (
-    IsAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthorOrReadOnly
+    IsAdmin, IsAdminOrReadOnly, IsAuthorModeratorOrAdminOrReadOnly
 )
 from .serializers import (
-    CategorySerializer, CommentSerializer,
-    CurrentUserSerializer, GenreSerializer,
-    ReviewSerializer, SignUpSerializer,
+    CategorySerializer, CommentSerializer, CurrentUserSerializer,
+    GenreSerializer, ReviewSerializer, SignUpSerializer,
     TitleCreateUpdateSerializer, TitleReadSerializer,
-    TokenSerializer, UserSerializer,
+    TokenSerializer, UserSerializer
 )
 
 
@@ -173,7 +172,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAdminModeratorAuthorOrReadOnly,
+        IsAuthorModeratorOrAdminOrReadOnly,
     )
 
     def get_queryset(self):
@@ -197,7 +196,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAdminModeratorAuthorOrReadOnly,
+        IsAuthorModeratorOrAdminOrReadOnly,
     )
     http_method_names = ('get', 'post', 'patch', 'delete')
 
