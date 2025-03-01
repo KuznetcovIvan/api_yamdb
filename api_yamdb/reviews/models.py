@@ -221,7 +221,7 @@ class User(AbstractUser):
 
     def is_moderator(self):
         """Проверяет, является ли пользователь модератором. """
-        return self.role in ('admin', 'moderator')
+        return self.role == 'moderator'
         
 
     def __str__(self):
