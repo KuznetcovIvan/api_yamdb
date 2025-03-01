@@ -172,18 +172,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_title(self):
         """Получает объект Title по title_id из URL."""
-        title_id = self.kwargs['title_id']
-        return get_object_or_404(Title, id=title_id)
+        return get_object_or_404(Title, id=self.kwargs['title_id'])
 
     def get_queryset(self):
         """Возвращает queryset с отзывами для конкретного title."""
-        title = self.get_title()
-        return title.reviews.all()
+        return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
         """Создает отзыв для конкретного title."""
-        title = self.get_title()
-        serializer.save(author=self.request.user, title=title)
+        serializer.save(author=self.request.user, title=self.get_title())
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -198,15 +195,12 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_review(self):
         """Получает объект Review по review_id из URL."""
-        review_id = self.kwargs['review_id']
-        return get_object_or_404(Review, id=review_id)
+        return get_object_or_404(Review, id=self.kwargs['review_id'])
 
     def get_queryset(self):
         """Возвращает queryset с комментариями для конкретного review."""
-        review = self.get_review()
-        return review.comments.all()
+        return self.get_review().comments.all()
 
     def perform_create(self, serializer):
         """Создает комментарий для конкретного review."""
-        review = self.get_review()
-        serializer.save(author=self.request.user, review=review)
+        serializer.save(author=self.request.user, review=self.get_review())

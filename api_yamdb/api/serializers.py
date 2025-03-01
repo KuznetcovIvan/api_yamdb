@@ -98,7 +98,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         if request.method == 'PATCH':
             return data
         if Review.objects.filter(
-                title_id=self.context['view'].kwargs['title_id'],
+            title_id=self.context['view'].kwargs['title_id'],
                 author=request.user).exists():
             raise serializers.ValidationError(
                 'Вы уже оставляли отзыв на данное произведение.'
