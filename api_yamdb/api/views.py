@@ -2,6 +2,7 @@ from random import randint
 
 from django.core.mail import send_mail
 from django.db import IntegrityError
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as django_filters
 from rest_framework import filters, mixins, status, viewsets
@@ -39,10 +40,22 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete', 'head', 'options')
     permission_classes = (IsAdminOrReadOnly,)
 
+    def get_queryset(self):
+        """Добавляем аннотацию для расчета среднего рейтинга."""
+        return Title.objects.annotate(rating=Avg('reviews__score'))
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return TitleReadSerializer
         return TitleCreateUpdateSerializer
+
+    def perform_create(self, serializer):
+        """Создание нового произведения."""
+        serializer.save()
+
+    def perform_update(self, serializer):
+        """Обновление существующего произведения."""
+        serializer.save()
 
 
 class BaseSlugViewSet(

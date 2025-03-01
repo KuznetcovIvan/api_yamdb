@@ -5,7 +5,6 @@ from django.core.validators import (
     MaxValueValidator, MinValueValidator, RegexValidator
 )
 from django.db import models
-from django.db.models import Avg
 from django.utils.timezone import now
 
 from api_yamdb.settings import RESERVED_USERNAME
@@ -26,7 +25,7 @@ def validate_year(year):
 
 
 class SlugNameBaseModel(models.Model):
-    """Базовая слаг модель."""
+    """Базовая модель с полями name и slug."""
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
         unique=True,
@@ -88,12 +87,6 @@ class Title(models.Model):
         verbose_name='Жанр',
     )
 
-    @property
-    def rating(self):
-        """Вычисляет средний рейтинг произведения на основе отзывов."""
-        result = self.reviews.aggregate(Avg('score'))
-        return result['score__avg']
-
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
@@ -103,48 +96,48 @@ class Title(models.Model):
         return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
 
 
-class BaseReviewComment(models.Model):
-    """Базовый класс для отзывов и комментариев."""
-    text = models.TextField()
+class TextContent(models.Model):
+    """Mодель для текстового контента с автором и датой публикации."""
+    text = models.TextField(verbose_name='Текст')
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'User',
         on_delete=models.CASCADE,
-        related_name='%(class)s_related',
-        verbose_name='Автор',
+        verbose_name='Автор'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='Дата публикации',
+        verbose_name='Дата публикации'
     )
 
     class Meta:
         abstract = True
         ordering = ('-pub_date',)
+        default_related_name = 'texts'
 
     def __str__(self):
         return f'{self.author} - {self.text[:20]}'
 
 
-class Review(BaseReviewComment):
+class Review(TextContent):
     """Отзывы на произведения."""
     title = models.ForeignKey(
-        'Title',
+        Title,
         on_delete=models.CASCADE,
         related_name='reviews',
-        verbose_name='Произведение',
+        verbose_name='Произведение'
     )
     score = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)],
-        verbose_name='Оценка',
+        verbose_name='Оценка'
     )
 
-    class Meta(BaseReviewComment.Meta):
+    class Meta(TextContent.Meta):
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
-                name='unique_review',
+                name='unique_review'
             ),
         ]
 
@@ -152,16 +145,16 @@ class Review(BaseReviewComment):
         return f'Отзыв {self.author} на {self.title}'
 
 
-class Comment(BaseReviewComment):
+class Comment(TextContent):
     """Комментарии к отзывам."""
     review = models.ForeignKey(
-        'Review',
+        Review,
         on_delete=models.CASCADE,
         related_name='comments',
-        verbose_name='Отзыв',
+        verbose_name='Отзыв'
     )
 
-    class Meta(BaseReviewComment.Meta):
+    class Meta(TextContent.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
 
@@ -170,6 +163,7 @@ class Comment(BaseReviewComment):
 
 
 class User(AbstractUser):
+    """Модель пользователя."""
     email = models.EmailField(
         'Электронная почта',
         max_length=EMAIL_MAX_LENGTH,
@@ -215,6 +209,7 @@ class User(AbstractUser):
     )
 
     def clean(self):
+        """Проверка на использование запрещенного имени пользователя."""
         super().clean()
         if self.username == RESERVED_USERNAME:
             raise ValidationError(
@@ -226,8 +221,7 @@ class User(AbstractUser):
         return self.role == 'admin' or self.is_superuser or self.is_staff
 
     def is_moderator_or_admin(self):
-        """Проверяет, является ли пользователь
-        модератором или администратором."""
+        """Проверяет, является ли пользователь модератором или администратором."""
         return (
             self.role in ('admin', 'moderator')
             or self.is_superuser
