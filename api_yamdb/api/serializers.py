@@ -1,8 +1,7 @@
 from rest_framework import serializers
-
-from reviews.validators import username_validator
 from reviews.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
 from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.validators import username_validator
 
 
 class UsernameValidationMixin():
@@ -95,12 +94,14 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'pub_date')
 
     def validate(self, data):
-        """Проверка, что пользователь не оставлял отзыв на это произведение ранее."""
+        """Проверка, что пользователь не оставлял
+        отзыв на это произведение ранее."""
         request = self.context.get('request')
         if request.method == 'PATCH':
             return data
         title_id = self.context['view'].kwargs['title_id']
-        if Review.objects.filter(title_id=title_id, author=request.user).exists():
+        if Review.objects.filter(
+                title_id=title_id, author=request.user).exists():
             raise serializers.ValidationError(
                 ('Вы уже оставляли отзыв на данное произведение.')
             )

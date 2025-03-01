@@ -9,29 +9,26 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (
-    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
-)
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
+from reviews.models import Category, Comment, Genre, Review, Title, User
 
 from api_yamdb.settings import RESERVED_USERNAME
-from reviews.models import Category, Comment, Genre, Review, Title, User
+
 from .filters import TitleFilter
-from .permissions import (
-    IsAdmin, IsAdminOrReadOnly, IsAuthorModeratorOrAdminOrReadOnly
-)
-from .serializers import (
-    CategorySerializer, CommentSerializer, CurrentUserSerializer,
-    GenreSerializer, ReviewSerializer, SignUpSerializer,
-    TitleCreateUpdateSerializer, TitleReadSerializer,
-    TokenSerializer, UserSerializer
-)
+from .permissions import (IsAdmin, IsAdminOrReadOnly,
+                          IsAuthorModeratorOrAdminOrReadOnly)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          CurrentUserSerializer, GenreSerializer,
+                          ReviewSerializer, SignUpSerializer,
+                          TitleCreateUpdateSerializer, TitleReadSerializer,
+                          TokenSerializer, UserSerializer)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
-    queryset = Title.objects.all()
     serializer_class = TitleReadSerializer
     pagination_class = PageNumberPagination
     filter_backends = (django_filters.DjangoFilterBackend,)
@@ -41,7 +38,8 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Добавляем аннотацию для расчета среднего рейтинга."""
-        return Title.objects.annotate(rating=Avg('reviews__score'))
+        return Title.objects.annotate(
+            rating=Avg('reviews__score')).order_by('-year', 'name')
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:

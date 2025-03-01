@@ -1,17 +1,12 @@
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.validators import (
-    MaxValueValidator, MinValueValidator, RegexValidator
-)
+from django.core.validators import (MaxValueValidator, MinValueValidator,
+                                    RegexValidator)
 from django.db import models
 from django.utils.timezone import now
 
-from api_yamdb.settings import RESERVED_USERNAME
-from .constants import (
-    EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
-    MAX_LENGTH_STR, ROLES, USERNAME_MAX_LENGTH
-)
+from .constants import (EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
+                        MAX_LENGTH_STR, ROLES, USERNAME_MAX_LENGTH)
 from .validators import reserved_username_validator
 
 
@@ -20,8 +15,8 @@ def validate_year(year):
     current_year = now().year
     if year > current_year:
         raise ValidationError(
-            f'Указанный год ({year}) не может быть больше текущего ({current_year}).'
-        )
+            f'Указанный год ({year}) '
+            f'не может быть больше текущего ({current_year}).')
     return year
 
 
@@ -124,7 +119,6 @@ class Review(TextContent):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name='reviews',
         verbose_name='Произведение'
     )
     score = models.IntegerField(
@@ -135,6 +129,7 @@ class Review(TextContent):
     class Meta(TextContent.Meta):
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
+        default_related_name = 'reviews'
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
@@ -151,13 +146,13 @@ class Comment(TextContent):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        related_name='comments',
         verbose_name='Отзыв'
     )
 
     class Meta(TextContent.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
+        default_related_name = 'comments'
 
     def __str__(self):
         return f'Комментарий {self.author} к отзыву {self.review}'
@@ -216,7 +211,7 @@ class User(AbstractUser):
     def is_moderator(self):
         """Проверяет, является ли пользователь модератором. """
         return self.role == 'moderator'
-        
+
     def __str__(self):
         return self.username
 
