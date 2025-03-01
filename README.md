@@ -73,16 +73,16 @@ python manage.py runserver
 
 ## Технологический стек
 
-- Python 3.9
-- Django 3.2
-- Django REST Framework 3.12.4
-- Simple JWT 4.7.2
+- Python
+- Django
+- Django REST Framework
+- Simple JWT
 - SQLite
 
 ---
 
 ## Авторы
 
-- **[Ivan Kuznetcov](https://github.com/KuznetcovIvan)** — регистрация, аутентификация, управление пользователями.
-- **[Anastasiya Kharkova](https://github.com/AVKharkova)** — категории, жанры, произведения, импорт данных.
-- **[Danila Agapov](https://github.com/Dan3278)** — отзывы, комментарии, рейтинг.
+- **[Иван Кузнецов](https://github.com/KuznetcovIvan)** — регистрация, аутентификация, управление пользователями.
+- **[Анастасия Харькова](https://github.com/AVKharkova)** — категории, жанры, произведения, импорт данных.
+- **[Данила Агапов](https://github.com/Dan3278)** — отзывы, комментарии, рейтинг.
