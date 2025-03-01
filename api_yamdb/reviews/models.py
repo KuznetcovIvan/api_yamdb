@@ -1,14 +1,18 @@
-from api.constants import (BAD_USERNAME, EMAIL_MAX_LENGTH, MAX_LENGTH_NAME,
-                           MAX_LENGTH_SLUG, MAX_LENGTH_STR, ROLE_MAX_LENGTH,
-                           ROLES, USERNAME_MAX_LENGTH)
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.validators import (MaxValueValidator, MinValueValidator,
-                                    RegexValidator)
+from django.core.validators import (
+    MaxValueValidator, MinValueValidator, RegexValidator
+)
 from django.db import models
 from django.db.models import Avg
 from django.utils.timezone import now
+
+from api.constants import (BAD_USERNAME)
+from .constants import (
+    EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
+    MAX_LENGTH_STR, ROLE_MAX_LENGTH, ROLES, USERNAME_MAX_LENGTH
+)
 
 
 def validate_year(year):
@@ -16,7 +20,7 @@ def validate_year(year):
     current_year = now().year
     if year > current_year:
         raise ValidationError(
-            f'Год не может быть больше текущего ({current_year})'
+            f'Указанный год ({year}) не может быть больше текущего ({current_year}).'
         )
     return year
 
@@ -48,7 +52,6 @@ class Category(SlugNameBaseModel):
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
-        default_related_name = 'titles'
 
 
 class Genre(SlugNameBaseModel):
@@ -57,7 +60,6 @@ class Genre(SlugNameBaseModel):
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
-        default_related_name = 'titles'
 
 
 class Title(models.Model):

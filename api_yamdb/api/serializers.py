@@ -1,4 +1,4 @@
-from api.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
+from reviews.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
 from api.validators import username_validator
 from rest_framework import serializers
 from reviews.models import Category, Comment, Genre, Review, Title, User
@@ -16,7 +16,7 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TitleCreateSerializer(serializers.ModelSerializer):
+class TitleCreateUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания/обновления произведения."""
     id = serializers.IntegerField(read_only=True)
     category = serializers.SlugRelatedField(
@@ -28,6 +28,19 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         slug_field='slug',
         many=True
     )
+
+    class Meta:
+        model = Title
+        fields = ('id', 'name', 'year', 'description', 'category', 'genre')
+
+    def to_representation(self, instance):
+        return TitleReadSerializer(instance).data
+
+
+class TitleReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для чтения произведения."""
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
     rating = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -36,30 +49,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
             'id', 'name', 'year', 'rating',
             'description', 'category', 'genre'
         )
-
-
-class TitleReadSerializer(serializers.ModelSerializer):
-    """Сериализатор для чтения произведения."""
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.FloatField(read_only=True)
-
-    class Meta:
-        model = Title
-        fields = (
-            'id', 'name', 'year', 'rating',
-            'description', 'category', 'genre'
-        )
         read_only_fields = fields
-
-    def to_representation(self, instance):
-        """Добавляем рейтинг в представление."""
-        representation = super().to_representation(instance)
-        if instance.rating is not None:
-            representation['rating'] = round(instance.rating, 1)
-        else:
-            representation['rating'] = None
-        return representation
 
 
 class SignUpSerializer(serializers.Serializer):
