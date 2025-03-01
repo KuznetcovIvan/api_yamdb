@@ -119,8 +119,9 @@ def token(request):
        or user.confirmation_code == settings.BLOCKED_PIN):
         raise ValidationError(
             {'confirmation_code': 'Неверный код подтверждения'})
-    user.confirmation_code = settings.BLOCKED_PIN
-    user.save(update_fields=['confirmation_code'])
+    if user.confirmation_code != settings.BLOCKED_PIN:
+        user.confirmation_code = settings.BLOCKED_PIN
+        user.save(update_fields=['confirmation_code'])
     return Response(
         {'token': str(AccessToken.for_user(user))},
         status=status.HTTP_200_OK,
