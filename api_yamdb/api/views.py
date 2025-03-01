@@ -1,30 +1,32 @@
-from random import randint
+from random import choice
 
+from django.conf import settings
 from django.core.mail import send_mail
 from django.db import IntegrityError
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as django_filters
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import (
+    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
-from api_yamdb.settings import RESERVED_USERNAME
-
 from .filters import TitleFilter
-from .permissions import (IsAdmin, IsAdminOrReadOnly,
-                          IsAuthorModeratorOrAdminOrReadOnly)
-from .serializers import (CategorySerializer, CommentSerializer,
-                          CurrentUserSerializer, GenreSerializer,
-                          ReviewSerializer, SignUpSerializer,
-                          TitleCreateUpdateSerializer, TitleReadSerializer,
-                          TokenSerializer, UserSerializer)
+from .permissions import (
+    IsAdmin, IsAdminOrReadOnly, IsAuthorModeratorOrAdminOrReadOnly
+)
+from .serializers import (
+    CategorySerializer, CommentSerializer, CurrentUserSerializer,
+    GenreSerializer, ReviewSerializer, SignUpSerializer,
+    TitleCreateUpdateSerializer, TitleReadSerializer, TokenSerializer,
+    UserSerializer
+)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -84,16 +86,19 @@ def signup(request):
     try:
         user, _ = User.objects.get_or_create(**serializer.validated_data)
     except IntegrityError:
-        if User.objects.filter(
-                email=serializer.validated_data['email']).exists():
-            raise ValidationError({'email': 'Этот email уже занят.'})
-        if User.objects.filter(
-            username=serializer.validated_data['username']
-        ).exists():
-            raise ValidationError({'username': 'Этот username уже занят.'})
-        raise ValidationError({'detail': 'Неизвестная ошибка уникальности'})
+        user = User.objects.get(
+            Q(email=serializer.validated_data['email'])
+            | Q(username=serializer.validated_data['username'])
+        )
+        raise ValidationError(
+            {'email': 'Этот email уже занят.'}
+            if user.email == serializer.validated_data['email']
+            else {'username': 'Этот username уже занят.'}
+        )
 
-    confirmation_code = ''.join([str(randint(0, 9)) for _ in range(6)])
+    confirmation_code = (''.join(
+        choice(settings.CONFIRMATION_CODE_CHARS)
+        for _ in range(settings.CONFIRMATION_CODE_LENGTH)))
     user.confirmation_code = confirmation_code
     user.save(update_fields=['confirmation_code'])
 
@@ -117,6 +122,8 @@ def token(request):
         User, username=serializer.validated_data['username'])
     if (user.confirmation_code
             != serializer.validated_data['confirmation_code']):
+        user.confirmation_code = None
+        user.save(update_fields=['confirmation_code'])
         raise ValidationError(
             {'confirmation_code': 'Неверный код подтверждения'})
     return Response(
@@ -139,7 +146,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=('get', 'patch'),
-        url_path=RESERVED_USERNAME,
+        url_path=settings.PROFILE_URL_SEGMENT,
         permission_classes=(IsAuthenticated,),
         serializer_class=CurrentUserSerializer,
     )
@@ -148,7 +155,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         if request.method != 'PATCH':
             return Response(
-                CurrentUserSerializer(user).data,
+                UserSerializer(user).data,
                 status=status.HTTP_200_OK,
             )
         serializer = CurrentUserSerializer(

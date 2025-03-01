@@ -3,22 +3,18 @@ import re
 from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
 
-from api_yamdb.settings import RESERVED_USERNAME
-
-
-def reserved_username_validator(username):
-    if username == RESERVED_USERNAME:
-        raise ValidationError(f'Имя "{RESERVED_USERNAME}" запрещено.')
-    return username
+from django.conf import settings
 
 
 def username_validator(username):
-    reserved_username_validator(username)
-    invalid_chars = sorted(set(re.findall(r'[^\w.@+-]', username)))
+    if username == settings.PROFILE_URL_SEGMENT:
+        raise ValidationError(
+            f'Логин "{settings.PROFILE_URL_SEGMENT}" запрещен.')
+    invalid_chars = set(re.findall(r'[^\w.@+-]', username))
     if invalid_chars:
         raise ValidationError(
-            f'Недопустимые символы в имени пользователя: '
-            f'{" ".join(invalid_chars)} '
+            f'Недопустимые символы в логине: '
+            f'{"".join(invalid_chars)} '
             'Разрешены только буквы, цифры и @/./+/-/_')
     return username
 
