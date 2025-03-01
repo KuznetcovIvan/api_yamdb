@@ -94,7 +94,6 @@ def signup(request):
         settings.CONFIRMATION_CODE_CHARS,
         k=settings.CONFIRMATION_CODE_LENGTH))
     user.confirmation_code = confirmation_code
-    user.confirmation_code = confirmation_code
     user.save(update_fields=['confirmation_code'])
 
     send_mail(
@@ -116,11 +115,13 @@ def token(request):
     user = get_object_or_404(
         User, username=serializer.validated_data['username'])
     if (user.confirmation_code
-       != serializer.validated_data['confirmation_code']):
-        user.confirmation_code = settings.BLOCKED_PIN
-        user.save(update_fields=['confirmation_code'])
+       != serializer.validated_data['confirmation_code']
+       or user.confirmation_code == settings.BLOCKED_PIN):
         raise ValidationError(
             {'confirmation_code': 'Неверный код подтверждения'})
+    if user.confirmation_code != settings.BLOCKED_PIN:
+        user.confirmation_code = settings.BLOCKED_PIN
+        user.save(update_fields=['confirmation_code'])
     return Response(
         {'token': str(AccessToken.for_user(user))},
         status=status.HTTP_200_OK,
