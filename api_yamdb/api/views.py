@@ -8,31 +8,26 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import (
+    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
+
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 from .constants import BAD_USERNAME
 from .filters import TitleFilter
-from .permissions import (IsAdmin, IsAdminOrReadOnly,
-                          IsAuthorModeratorAdminOrReadOnly)
-from .serializers import (CategorySerializer, CommentSerializer,
-                          CurrentUserSerializer, GenreSerializer,
-                          ReviewSerializer, SignUpSerializer,
-                          TitleCreateSerializer, TitleReadSerializer,
-                          TokenSerializer, UserSerializer)
-
-
-class CreateListDestroyViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet,
-):
-    """Базовый класс."""
-    pass
+from .permissions import (
+    IsAdmin, IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly
+)
+from .serializers import (
+    CategorySerializer, CommentSerializer,
+    CurrentUserSerializer, GenreSerializer,
+    ReviewSerializer, SignUpSerializer,
+    TitleCreateUpdateSerializer, TitleReadSerializer,
+    TokenSerializer, UserSerializer,
+)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -48,10 +43,15 @@ class TitleViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return TitleReadSerializer
-        return TitleCreateSerializer
+        return TitleCreateUpdateSerializer
 
 
-class BaseSlugViewSet(CreateListDestroyViewSet):
+class BaseSlugViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     """Базовый вьюсет для категорий и жанров."""
     permission_classes = (IsAdminOrReadOnly,)
     lookup_field = 'slug'
