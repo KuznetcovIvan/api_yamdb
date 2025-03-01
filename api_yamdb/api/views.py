@@ -1,9 +1,9 @@
-from random import choice
+from random import choices
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import IntegrityError
-from django.db.models import Avg, Q
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as django_filters
 from rest_framework import filters, mixins, status, viewsets
@@ -83,19 +83,17 @@ def signup(request):
     try:
         user, _ = User.objects.get_or_create(**serializer.validated_data)
     except IntegrityError:
-        user = User.objects.get(
-            Q(email=serializer.validated_data['email'])
-            | Q(username=serializer.validated_data['username'])
-        )
         raise ValidationError(
-            {'email': 'Этот email уже занят.'}
-            if user.email == serializer.validated_data['email']
-            else {'username': 'Этот username уже занят.'}
+            {'email': 'email уже занят.'}
+            if User.objects.filter(
+                email=serializer.validated_data['email']).exists()
+            else {'username': 'username уже занят.'}
         )
 
-    confirmation_code = (''.join(
-        choice(settings.CONFIRMATION_CODE_CHARS)
-        for _ in range(settings.CONFIRMATION_CODE_LENGTH)))
+    confirmation_code = ''.join(choices(
+        settings.CONFIRMATION_CODE_CHARS,
+        k=settings.CONFIRMATION_CODE_LENGTH))
+    user.confirmation_code = confirmation_code
     user.confirmation_code = confirmation_code
     user.save(update_fields=['confirmation_code'])
 
@@ -118,8 +116,8 @@ def token(request):
     user = get_object_or_404(
         User, username=serializer.validated_data['username'])
     if (user.confirmation_code
-            != serializer.validated_data['confirmation_code']):
-        user.confirmation_code = None
+       != serializer.validated_data['confirmation_code']):
+        user.confirmation_code = settings.BLOCKED_PIN
         user.save(update_fields=['confirmation_code'])
         raise ValidationError(
             {'confirmation_code': 'Неверный код подтверждения'})
