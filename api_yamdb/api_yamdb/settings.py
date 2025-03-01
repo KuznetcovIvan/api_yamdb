@@ -130,6 +130,7 @@ PROFILE_URL_SEGMENT = 'me'
 
 CONFIRMATION_CODE_CHARS = '0123456789'
 CONFIRMATION_CODE_LENGTH = 6
+BLOCKED_PIN = 'BLOCK!'
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'

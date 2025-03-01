@@ -1,9 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.utils.timezone import now
 
 from .constants import (EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
                         MAX_LENGTH_STR, MAX_SCORE, MIN_SCORE, ROLE_ADMIN,
@@ -15,16 +13,6 @@ ROLES = (
     (ROLE_MODERATOR, 'Модератор'),
     (ROLE_ADMIN, 'Администратор'),
 )
-
-
-def validate_year(year):
-    """Проверка года."""
-    current_year = now().year
-    if year > current_year:
-        raise ValidationError(
-            f'Указанный год ({year}) '
-            f'не может быть больше текущего ({current_year}).')
-    return year
 
 
 class SlugNameBaseModel(models.Model):
@@ -101,13 +89,13 @@ class Title(models.Model):
 
 
 class TextContent(models.Model):
-    """Mодель для текстового контента с автором и датой публикации."""
+    """Модель для текстового контента с автором и датой публикации."""
+
     text = models.TextField(verbose_name='Текст')
     author = models.ForeignKey(
         'User',
         on_delete=models.CASCADE,
         verbose_name='Автор',
-        related_name='%(class)s_related'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
@@ -117,7 +105,7 @@ class TextContent(models.Model):
     class Meta:
         abstract = True
         ordering = ('-pub_date',)
-        default_related_name = 'texts'
+        default_related_name = 'text_contents'
 
     def __str__(self):
         return f'{self.author} - {self.text[:20]}'
@@ -129,7 +117,6 @@ class Review(TextContent):
         Title,
         on_delete=models.CASCADE,
         verbose_name='Произведение',
-        related_name='reviews'
     )
     score = models.IntegerField(
         validators=[MinValueValidator(
@@ -158,7 +145,6 @@ class Comment(TextContent):
         Review,
         on_delete=models.CASCADE,
         verbose_name='Отзыв',
-        related_name='comments'
     )
 
     class Meta(TextContent.Meta):
