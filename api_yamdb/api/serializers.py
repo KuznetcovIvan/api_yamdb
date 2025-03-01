@@ -92,27 +92,19 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
-        read_only_fields = ('id', 'author', 'pub_date')
+        read_only_fields = ('id', 'pub_date')
 
     def validate(self, data):
-        """Проверка, что пользователь не оставлял
-        отзыв на это произведение ранее."""
+        """Проверка, что пользователь не оставлял отзыв на это произведение ранее."""
         request = self.context.get('request')
-        if request and request.method == 'PATCH':
+        if request.method == 'PATCH':
             return data
-        title_id = self.context['view'].kwargs.get('title_id')
-        if Review.objects.filter(
-                title_id=title_id, author=request.user).exists():
+        title_id = self.context['view'].kwargs['title_id']
+        if Review.objects.filter(title_id=title_id, author=request.user).exists():
             raise serializers.ValidationError(
-                'You have already reviewed this title.')
+                ('Вы уже оставляли отзыв на данное произведение.')
+            )
         return data
-
-    def update(self, instance, validated_data):
-        """Обновление отзыва с автоматическим заполнением поля автора."""
-        instance.text = validated_data.get('text', instance.text)
-        instance.score = validated_data.get('score', instance.score)
-        instance.save()
-        return instance
 
 
 class CommentSerializer(serializers.ModelSerializer):
