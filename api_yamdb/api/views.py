@@ -29,17 +29,15 @@ from .serializers import (CategorySerializer, CommentSerializer,
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')
+    ).order_by(*Title._meta.ordering)
     serializer_class = TitleReadSerializer
     pagination_class = PageNumberPagination
     filter_backends = (django_filters.DjangoFilterBackend,)
     filterset_class = TitleFilter
     http_method_names = ('get', 'post', 'patch', 'delete', 'head', 'options')
     permission_classes = (IsAdminOrReadOnly,)
-
-    def get_queryset(self):
-        """Добавляем аннотацию для расчета среднего рейтинга."""
-        return Title.objects.annotate(
-            rating=Avg('reviews__score')).order_by('-year', 'name')
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
@@ -48,10 +46,6 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Создание нового произведения."""
-        serializer.save()
-
-    def perform_update(self, serializer):
-        """Обновление существующего произведения."""
         serializer.save()
 
 

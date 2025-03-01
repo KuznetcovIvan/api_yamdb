@@ -1,5 +1,6 @@
 import re
 
+from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
 
 from api_yamdb.settings import RESERVED_USERNAME
@@ -20,3 +21,13 @@ def username_validator(username):
             f'{" ".join(invalid_chars)} '
             'Разрешены только буквы, цифры и @/./+/-/_')
     return username
+
+
+def validate_year(year):
+    """Проверка года."""
+    current_year = now().year
+    if year > current_year:
+        raise ValidationError(
+            f'Указанный год ({year}) '
+            f'не может быть больше текущего ({current_year}).')
+    return year
