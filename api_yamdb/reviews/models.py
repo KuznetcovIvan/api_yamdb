@@ -101,13 +101,13 @@ class Title(models.Model):
 
 
 class TextContent(models.Model):
-    """Mодель для текстового контента с автором и датой публикации."""
+    """Модель для текстового контента с автором и датой публикации."""
+
     text = models.TextField(verbose_name='Текст')
     author = models.ForeignKey(
         'User',
         on_delete=models.CASCADE,
         verbose_name='Автор',
-        related_name='%(class)s_related'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
@@ -117,7 +117,7 @@ class TextContent(models.Model):
     class Meta:
         abstract = True
         ordering = ('-pub_date',)
-        default_related_name = 'texts'
+        default_related_name = 'text_contents'
 
     def __str__(self):
         return f'{self.author} - {self.text[:20]}'
@@ -129,7 +129,6 @@ class Review(TextContent):
         Title,
         on_delete=models.CASCADE,
         verbose_name='Произведение',
-        related_name='reviews'
     )
     score = models.IntegerField(
         validators=[MinValueValidator(
@@ -158,7 +157,6 @@ class Comment(TextContent):
         Review,
         on_delete=models.CASCADE,
         verbose_name='Отзыв',
-        related_name='comments'
     )
 
     class Meta(TextContent.Meta):
