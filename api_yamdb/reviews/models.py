@@ -1,14 +1,13 @@
-from api.constants import (BAD_USERNAME, EMAIL_MAX_LENGTH, MAX_LENGTH_NAME,
-                           MAX_LENGTH_SLUG, MAX_LENGTH_STR, ROLE_MAX_LENGTH,
-                           ROLES, USERNAME_MAX_LENGTH)
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import (MaxValueValidator, MinValueValidator,
                                     RegexValidator)
 from django.db import models
-from django.db.models import Avg
 from django.utils.timezone import now
+
+from .constants import (EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
+                        MAX_LENGTH_STR, ROLES, USERNAME_MAX_LENGTH)
+from .validators import reserved_username_validator
 
 
 def validate_year(year):
@@ -16,13 +15,13 @@ def validate_year(year):
     current_year = now().year
     if year > current_year:
         raise ValidationError(
-            f'Год не может быть больше текущего ({current_year})'
-        )
+            f'Указанный год ({year}) '
+            f'не может быть больше текущего ({current_year}).')
     return year
 
 
 class SlugNameBaseModel(models.Model):
-    """Базовая слаг модель."""
+    """Базовая модель с полями name и slug."""
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
         unique=True,
@@ -48,7 +47,6 @@ class Category(SlugNameBaseModel):
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
-        default_related_name = 'titles'
 
 
 class Genre(SlugNameBaseModel):
@@ -57,7 +55,6 @@ class Genre(SlugNameBaseModel):
     class Meta(SlugNameBaseModel.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
-        default_related_name = 'titles'
 
 
 class Title(models.Model):
@@ -86,12 +83,6 @@ class Title(models.Model):
         verbose_name='Жанр',
     )
 
-    @property
-    def rating(self):
-        """Вычисляет средний рейтинг произведения на основе отзывов."""
-        result = self.reviews.aggregate(Avg('score'))
-        return result['score__avg']
-
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
@@ -101,48 +92,48 @@ class Title(models.Model):
         return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
 
 
-class BaseReviewComment(models.Model):
-    """Базовый класс для отзывов и комментариев."""
-    text = models.TextField()
+class TextContent(models.Model):
+    """Mодель для текстового контента с автором и датой публикации."""
+    text = models.TextField(verbose_name='Текст')
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'User',
         on_delete=models.CASCADE,
-        related_name='%(class)s_related',
-        verbose_name='Автор',
+        verbose_name='Автор'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='Дата публикации',
+        verbose_name='Дата публикации'
     )
 
     class Meta:
         abstract = True
         ordering = ('-pub_date',)
+        default_related_name = 'texts'
 
     def __str__(self):
         return f'{self.author} - {self.text[:20]}'
 
 
-class Review(BaseReviewComment):
+class Review(TextContent):
     """Отзывы на произведения."""
     title = models.ForeignKey(
-        'Title',
+        Title,
         on_delete=models.CASCADE,
-        related_name='reviews',
-        verbose_name='Произведение',
+        verbose_name='Произведение'
     )
     score = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)],
-        verbose_name='Оценка',
+        verbose_name='Оценка'
     )
 
-    class Meta(BaseReviewComment.Meta):
+    class Meta(TextContent.Meta):
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
+        default_related_name = 'reviews'
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
-                name='unique_review',
+                name='unique_review'
             ),
         ]
 
@@ -150,26 +141,27 @@ class Review(BaseReviewComment):
         return f'Отзыв {self.author} на {self.title}'
 
 
-class Comment(BaseReviewComment):
+class Comment(TextContent):
     """Комментарии к отзывам."""
     review = models.ForeignKey(
-        'Review',
+        Review,
         on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Отзыв',
+        verbose_name='Отзыв'
     )
 
-    class Meta(BaseReviewComment.Meta):
+    class Meta(TextContent.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
+        default_related_name = 'comments'
 
     def __str__(self):
         return f'Комментарий {self.author} к отзыву {self.review}'
 
 
 class User(AbstractUser):
+    """Модель пользователя."""
     email = models.EmailField(
-        'Почта',
+        'Электронная почта',
         max_length=EMAIL_MAX_LENGTH,
         unique=True,
     )
@@ -179,9 +171,9 @@ class User(AbstractUser):
     )
     role = models.CharField(
         'Роль',
-        max_length=ROLE_MAX_LENGTH,
+        max_length=max(len(role[0]) for role in ROLES),
         choices=ROLES,
-        default='user',
+        default=ROLES[0][0],
     )
     username = models.CharField(
         'Логин',
@@ -192,7 +184,7 @@ class User(AbstractUser):
             RegexValidator(
                 regex=r'^[\w.@+-]+$',
                 message='Допустимы только буквы, цифры и @/./+/-/_',
-            ),
+            ), reserved_username_validator
         ],
     )
     first_name = models.CharField(
@@ -212,25 +204,13 @@ class User(AbstractUser):
         null=True,
     )
 
-    def clean(self):
-        super().clean()
-        if self.username == BAD_USERNAME:
-            raise ValidationError(
-                {'username': f'Имя "{BAD_USERNAME}" запрещено.'}
-            )
-
     def is_admin(self):
         """Проверяет, является ли пользователь администратором."""
-        return self.role == 'admin' or self.is_superuser or self.is_staff
+        return self.role == 'admin' or self.is_staff
 
-    def is_moderator_or_admin(self):
-        """Проверяет, является ли пользователь
-        модератором или администратором."""
-        return (
-            self.role in ('admin', 'moderator')
-            or self.is_superuser
-            or self.is_staff
-        )
+    def is_moderator(self):
+        """Проверяет, является ли пользователь модератором. """
+        return self.role == 'moderator'
 
     def __str__(self):
         return self.username

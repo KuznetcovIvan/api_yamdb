@@ -2,6 +2,7 @@ from random import randint
 
 from django.core.mail import send_mail
 from django.db import IntegrityError
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as django_filters
 from rest_framework import filters, mixins, status, viewsets
@@ -14,30 +15,20 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
-from .constants import BAD_USERNAME
+from api_yamdb.settings import RESERVED_USERNAME
+
 from .filters import TitleFilter
 from .permissions import (IsAdmin, IsAdminOrReadOnly,
-                          IsAuthorModeratorAdminOrReadOnly)
+                          IsAuthorModeratorOrAdminOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CurrentUserSerializer, GenreSerializer,
                           ReviewSerializer, SignUpSerializer,
-                          TitleCreateSerializer, TitleReadSerializer,
+                          TitleCreateUpdateSerializer, TitleReadSerializer,
                           TokenSerializer, UserSerializer)
-
-
-class CreateListDestroyViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet,
-):
-    """Базовый класс."""
-    pass
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для произведений."""
-    queryset = Title.objects.all()
     serializer_class = TitleReadSerializer
     pagination_class = PageNumberPagination
     filter_backends = (django_filters.DjangoFilterBackend,)
@@ -45,13 +36,31 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete', 'head', 'options')
     permission_classes = (IsAdminOrReadOnly,)
 
+    def get_queryset(self):
+        """Добавляем аннотацию для расчета среднего рейтинга."""
+        return Title.objects.annotate(
+            rating=Avg('reviews__score')).order_by('-year', 'name')
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return TitleReadSerializer
-        return TitleCreateSerializer
+        return TitleCreateUpdateSerializer
+
+    def perform_create(self, serializer):
+        """Создание нового произведения."""
+        serializer.save()
+
+    def perform_update(self, serializer):
+        """Обновление существующего произведения."""
+        serializer.save()
 
 
-class BaseSlugViewSet(CreateListDestroyViewSet):
+class BaseSlugViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     """Базовый вьюсет для категорий и жанров."""
     permission_classes = (IsAdminOrReadOnly,)
     lookup_field = 'slug'
@@ -136,7 +145,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=('get', 'patch'),
-        url_path=BAD_USERNAME,
+        url_path=RESERVED_USERNAME,
         permission_classes=(IsAuthenticated,),
         serializer_class=CurrentUserSerializer,
     )
@@ -161,7 +170,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorModeratorAdminOrReadOnly,
+        IsAuthorModeratorOrAdminOrReadOnly,
     )
 
     def get_queryset(self):
@@ -185,7 +194,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorModeratorAdminOrReadOnly,
+        IsAuthorModeratorOrAdminOrReadOnly,
     )
     http_method_names = ('get', 'post', 'patch', 'delete')
 

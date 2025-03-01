@@ -8,7 +8,9 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv(
+    'SECRET_KEY',
+    'insecure_default_key_please_change_this_in_production')
 
 DEBUG = os.getenv('DEBUG', 'True')
 
@@ -124,6 +126,7 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = 'reviews.User'
+RESERVED_USERNAME = 'me'
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
