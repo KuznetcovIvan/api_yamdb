@@ -19,7 +19,7 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 from .constants import BAD_USERNAME
 from .filters import TitleFilter
 from .permissions import (
-    IsAdmin, IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly
+    IsAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthorOrReadOnly
 )
 from .serializers import (
     CategorySerializer, CommentSerializer,
@@ -161,7 +161,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorModeratorAdminOrReadOnly,
+        IsAdminModeratorAuthorOrReadOnly,
     )
 
     def get_queryset(self):
@@ -185,7 +185,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorModeratorAdminOrReadOnly,
+        IsAdminModeratorAuthorOrReadOnly,
     )
     http_method_names = ('get', 'post', 'patch', 'delete')
 
