@@ -160,6 +160,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Вьюсет для отзывов."""
+
     http_method_names = ('get', 'post', 'patch', 'delete')
     serializer_class = ReviewSerializer
     permission_classes = (
@@ -167,24 +168,29 @@ class ReviewViewSet(viewsets.ModelViewSet):
         IsAuthorModeratorOrAdminOrReadOnly,
     )
 
-    def get_queryset(self):
+    def get_title(self):
+        """Получает объект Title по title_id из URL."""
         title_id = self.kwargs['title_id']
-        get_object_or_404(Title, id=title_id)
-        return Review.objects.filter(title_id=title_id)
+        return get_object_or_404(Title, id=title_id)
+
+    def get_queryset(self):
+        """Возвращает queryset с отзывами для конкретного title."""
+        title = self.get_title()
+        return title.reviews.all()
 
     def perform_create(self, serializer):
-        title_id = self.kwargs['title_id']
-        title = get_object_or_404(Title, id=title_id)
+        """Создает отзыв для конкретного title."""
+        title = self.get_title()
 
-        if Review.objects.filter(
-                title=title, author=self.request.user).exists():
-            raise ValidationError('You have already reviewed this title.')
+        if Review.objects.filter(title=title, author=self.request.user).exists():
+            raise ValidationError('Вы уже оставляли отзыв на данное произведение')
 
         serializer.save(author=self.request.user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для комментариев."""
+
     serializer_class = CommentSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
@@ -192,12 +198,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     )
     http_method_names = ('get', 'post', 'patch', 'delete')
 
-    def get_queryset(self):
+    def get_review(self):
+        """Получает объект Review по review_id из URL."""
         review_id = self.kwargs['review_id']
-        get_object_or_404(Review, id=review_id)
-        return Comment.objects.filter(review_id=review_id)
+        return get_object_or_404(Review, id=review_id)
+
+    def get_queryset(self):
+        """Возвращает queryset с комментариями для конкретного review."""
+        review = self.get_review()
+        return review.comments.all()
 
     def perform_create(self, serializer):
-        review_id = self.kwargs['review_id']
-        review = get_object_or_404(Review, id=review_id)
+        """Создает комментарий для конкретного review."""
+        review = self.get_review()
         serializer.save(author=self.request.user, review=review)
