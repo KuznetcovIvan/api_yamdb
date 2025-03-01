@@ -1,24 +1,20 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.timezone import now
-from django.conf import settings
 
-
-from .constants import (
-    EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
-    MAX_LENGTH_STR, USERNAME_MAX_LENGTH, ROLE_USER,
-    ROLE_MODERATOR, ROLE_ADMIN, MAX_SCORE, MIN_SCORE)
+from .constants import (EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
+                        MAX_LENGTH_STR, MAX_SCORE, MIN_SCORE, ROLE_ADMIN,
+                        ROLE_MODERATOR, ROLE_USER, USERNAME_MAX_LENGTH)
 from .validators import username_validator, validate_year
-
 
 ROLES = (
     (ROLE_USER, 'Аутентифицированный пользователь'),
     (ROLE_MODERATOR, 'Модератор'),
     (ROLE_ADMIN, 'Администратор'),
 )
-
 
 
 def validate_year(year):
@@ -136,7 +132,8 @@ class Review(TextContent):
         related_name='reviews'
     )
     score = models.IntegerField(
-        validators=[MinValueValidator(MIN_SCORE), MaxValueValidator(MAX_SCORE)],
+        validators=[MinValueValidator(
+            MIN_SCORE), MaxValueValidator(MAX_SCORE)],
         verbose_name='Оценка'
     )
 

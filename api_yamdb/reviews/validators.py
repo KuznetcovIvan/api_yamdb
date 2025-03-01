@@ -1,9 +1,8 @@
 import re
 
+from django.conf import settings
 from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
-
-from django.conf import settings
 
 
 def username_validator(username):
