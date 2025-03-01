@@ -21,11 +21,10 @@ from .permissions import (
     IsAdmin, IsAdminOrReadOnly, IsAuthorModeratorOrAdminOrReadOnly
 )
 from .serializers import (
-    CategorySerializer, CommentSerializer,
-    CurrentUserSerializer, GenreSerializer,
-    ReviewSerializer, SignUpSerializer,
+    CategorySerializer, CommentSerializer, CurrentUserSerializer,
+    GenreSerializer, ReviewSerializer, SignUpSerializer,
     TitleCreateUpdateSerializer, TitleReadSerializer,
-    TokenSerializer, UserSerializer,
+    TokenSerializer, UserSerializer
 )
 
 
