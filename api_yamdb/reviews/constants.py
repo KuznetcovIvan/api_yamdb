@@ -1,11 +1,10 @@
 MAX_LENGTH_NAME = 256
 MAX_LENGTH_SLUG = 50
 MAX_LENGTH_STR = 50
-
-ROLES = (
-    ('user', 'Аутентифицированный пользователь'),
-    ('moderator', 'Модератор'),
-    ('admin', 'Администратор'),
-)
+MIN_SCORE = 1
+MAX_SCORE = 10
 EMAIL_MAX_LENGTH = 254
 USERNAME_MAX_LENGTH = 150
+ROLE_USER = 'user'
+ROLE_MODERATOR = 'moderator'
+ROLE_ADMIN = 'admin'

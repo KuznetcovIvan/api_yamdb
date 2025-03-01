@@ -1,13 +1,20 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.validators import (MaxValueValidator, MinValueValidator,
-                                    RegexValidator)
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.timezone import now
 
 from .constants import (EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
-                        MAX_LENGTH_STR, ROLES, USERNAME_MAX_LENGTH)
-from .validators import reserved_username_validator
+                        MAX_LENGTH_STR, MAX_SCORE, MIN_SCORE, ROLE_ADMIN,
+                        ROLE_MODERATOR, ROLE_USER, USERNAME_MAX_LENGTH)
+from .validators import username_validator, validate_year
+
+ROLES = (
+    (ROLE_USER, 'Аутентифицированный пользователь'),
+    (ROLE_MODERATOR, 'Модератор'),
+    (ROLE_ADMIN, 'Администратор'),
+)
 
 
 def validate_year(year):
@@ -63,7 +70,7 @@ class Title(models.Model):
         max_length=MAX_LENGTH_NAME,
         verbose_name='Название',
     )
-    year = models.PositiveSmallIntegerField(
+    year = models.SmallIntegerField(
         verbose_name='Год',
         validators=[validate_year],
     )
@@ -87,6 +94,7 @@ class Title(models.Model):
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
         ordering = ('-year', 'name')
+        default_related_name = 'titles'
 
     def __str__(self):
         return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
@@ -98,7 +106,8 @@ class TextContent(models.Model):
     author = models.ForeignKey(
         'User',
         on_delete=models.CASCADE,
-        verbose_name='Автор'
+        verbose_name='Автор',
+        related_name='%(class)s_related'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
@@ -119,10 +128,12 @@ class Review(TextContent):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        verbose_name='Произведение'
+        verbose_name='Произведение',
+        related_name='reviews'
     )
     score = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        validators=[MinValueValidator(
+            MIN_SCORE), MaxValueValidator(MAX_SCORE)],
         verbose_name='Оценка'
     )
 
@@ -146,7 +157,8 @@ class Comment(TextContent):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        verbose_name='Отзыв'
+        verbose_name='Отзыв',
+        related_name='comments'
     )
 
     class Meta(TextContent.Meta):
@@ -166,26 +178,21 @@ class User(AbstractUser):
         unique=True,
     )
     bio = models.TextField(
-        'Биография',
+        'О себе',
         blank=True,
     )
     role = models.CharField(
         'Роль',
-        max_length=max(len(role[0]) for role in ROLES),
+        max_length=max(len(role) for role, _ in ROLES),
         choices=ROLES,
-        default=ROLES[0][0],
+        default=ROLE_USER,
     )
     username = models.CharField(
         'Логин',
         max_length=USERNAME_MAX_LENGTH,
         unique=True,
         help_text='Только буквы, цифры и @/./+/-/_',
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message='Допустимы только буквы, цифры и @/./+/-/_',
-            ), reserved_username_validator
-        ],
+        validators=(username_validator,)
     )
     first_name = models.CharField(
         'Имя',
@@ -199,18 +206,18 @@ class User(AbstractUser):
     )
     confirmation_code = models.CharField(
         'Код подтверждения',
-        max_length=6,
+        max_length=settings.CONFIRMATION_CODE_LENGTH,
         blank=True,
         null=True,
     )
 
     def is_admin(self):
         """Проверяет, является ли пользователь администратором."""
-        return self.role == 'admin' or self.is_staff
+        return self.role == ROLE_ADMIN or self.is_staff
 
     def is_moderator(self):
         """Проверяет, является ли пользователь модератором. """
-        return self.role == 'moderator'
+        return self.role == ROLE_MODERATOR
 
     def __str__(self):
         return self.username
