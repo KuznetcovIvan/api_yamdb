@@ -1,9 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.utils.timezone import now
 
 from .constants import (EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
                         MAX_LENGTH_STR, MAX_SCORE, MIN_SCORE, ROLE_ADMIN,
@@ -15,16 +13,6 @@ ROLES = (
     (ROLE_MODERATOR, 'Модератор'),
     (ROLE_ADMIN, 'Администратор'),
 )
-
-
-def validate_year(year):
-    """Проверка года."""
-    current_year = now().year
-    if year > current_year:
-        raise ValidationError(
-            f'Указанный год ({year}) '
-            f'не может быть больше текущего ({current_year}).')
-    return year
 
 
 class SlugNameBaseModel(models.Model):
