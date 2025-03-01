@@ -5,10 +5,11 @@ from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 
+
 from .constants import (
     EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
     MAX_LENGTH_STR, USERNAME_MAX_LENGTH, ROLE_USER,
-    ROLE_MODERATOR, ROLE_ADMIN)
+    ROLE_MODERATOR, ROLE_ADMIN, MAX_SCORE, MIN_SCORE)
 from .validators import username_validator, validate_year
 
 
@@ -17,6 +18,7 @@ ROLES = (
     (ROLE_MODERATOR, 'Модератор'),
     (ROLE_ADMIN, 'Администратор'),
 )
+
 
 
 def validate_year(year):
@@ -108,7 +110,8 @@ class TextContent(models.Model):
     author = models.ForeignKey(
         'User',
         on_delete=models.CASCADE,
-        verbose_name='Автор'
+        verbose_name='Автор',
+        related_name='%(class)s_related'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
@@ -129,10 +132,11 @@ class Review(TextContent):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        verbose_name='Произведение'
+        verbose_name='Произведение',
+        related_name='reviews'
     )
     score = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        validators=[MinValueValidator(MIN_SCORE), MaxValueValidator(MAX_SCORE)],
         verbose_name='Оценка'
     )
 
@@ -156,7 +160,8 @@ class Comment(TextContent):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        verbose_name='Отзыв'
+        verbose_name='Отзыв',
+        related_name='comments'
     )
 
     class Meta(TextContent.Meta):
