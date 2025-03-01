@@ -14,9 +14,8 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
+from api_yamdb.settings import RESERVED_USERNAME
 from reviews.models import Category, Comment, Genre, Review, Title, User
-
-from .constants import BAD_USERNAME
 from .filters import TitleFilter
 from .permissions import (
     IsAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthorOrReadOnly
@@ -136,7 +135,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=('get', 'patch'),
-        url_path=BAD_USERNAME,
+        url_path=RESERVED_USERNAME,
         permission_classes=(IsAuthenticated,),
         serializer_class=CurrentUserSerializer,
     )

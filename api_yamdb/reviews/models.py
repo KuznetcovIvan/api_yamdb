@@ -8,10 +8,10 @@ from django.db import models
 from django.db.models import Avg
 from django.utils.timezone import now
 
-from api.constants import (BAD_USERNAME)
+from api_yamdb.settings import RESERVED_USERNAME
 from .constants import (
     EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
-    MAX_LENGTH_STR, ROLE_MAX_LENGTH, ROLES, USERNAME_MAX_LENGTH
+    MAX_LENGTH_STR, ROLES, USERNAME_MAX_LENGTH
 )
 
 
@@ -171,7 +171,7 @@ class Comment(BaseReviewComment):
 
 class User(AbstractUser):
     email = models.EmailField(
-        'Почта',
+        'Электронная почта',
         max_length=EMAIL_MAX_LENGTH,
         unique=True,
     )
@@ -181,9 +181,9 @@ class User(AbstractUser):
     )
     role = models.CharField(
         'Роль',
-        max_length=ROLE_MAX_LENGTH,
+        max_length=max(len(role[0]) for role in ROLES),
         choices=ROLES,
-        default='user',
+        default=ROLES[0][0],
     )
     username = models.CharField(
         'Логин',
@@ -216,9 +216,9 @@ class User(AbstractUser):
 
     def clean(self):
         super().clean()
-        if self.username == BAD_USERNAME:
+        if self.username == RESERVED_USERNAME:
             raise ValidationError(
-                {'username': f'Имя "{BAD_USERNAME}" запрещено.'}
+                {'username': f'Имя "{RESERVED_USERNAME}" запрещено.'}
             )
 
     def is_admin(self):

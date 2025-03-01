@@ -1,1 +1,0 @@
-BAD_USERNAME = 'me'

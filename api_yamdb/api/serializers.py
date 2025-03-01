@@ -1,7 +1,13 @@
-from reviews.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
-from api.validators import username_validator
 from rest_framework import serializers
+
+from reviews.validators import username_validator
+from reviews.constants import EMAIL_MAX_LENGTH, USERNAME_MAX_LENGTH
 from reviews.models import Category, Comment, Genre, Review, Title, User
+
+
+class UsernameValidationMixin():
+    def validate_username(self, username):
+        return username_validator(username)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -52,33 +58,24 @@ class TitleReadSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class SignUpSerializer(serializers.Serializer):
+class SignUpSerializer(serializers.Serializer, UsernameValidationMixin):
     email = serializers.EmailField(
         max_length=EMAIL_MAX_LENGTH, required=True)
     username = serializers.CharField(
         max_length=USERNAME_MAX_LENGTH, required=True)
 
-    def validate_username(self, username):
-        return username_validator(username)
 
-
-class TokenSerializer(serializers.Serializer):
+class TokenSerializer(serializers.Serializer, UsernameValidationMixin):
     username = serializers.CharField(
         max_length=USERNAME_MAX_LENGTH, required=True)
     confirmation_code = serializers.CharField()
 
-    def validate_username(self, username):
-        return username_validator(username)
 
-
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer, UsernameValidationMixin):
     class Meta:
         model = User
         fields = (
             'username', 'email', 'first_name', 'last_name', 'bio', 'role')
-
-    def validate_username(self, username):
-        return username_validator(username)
 
 
 class CurrentUserSerializer(UserSerializer):
@@ -127,10 +124,3 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
-
-
-class MeSerializer(UserSerializer):
-    role = serializers.CharField(read_only=True)
-
-    class Meta(UserSerializer.Meta):
-        pass
