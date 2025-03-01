@@ -21,9 +21,23 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
+class TitleReadSerializer(serializers.ModelSerializer):
+    """Сериализатор для чтения произведения."""
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
+    rating = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'rating',
+            'description', 'category', 'genre'
+        )
+        read_only_fields = fields
+
+
 class TitleCreateUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания/обновления произведения."""
-    id = serializers.IntegerField(read_only=True)
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug'
@@ -40,21 +54,6 @@ class TitleCreateUpdateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return TitleReadSerializer(instance).data
-
-
-class TitleReadSerializer(serializers.ModelSerializer):
-    """Сериализатор для чтения произведения."""
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = Title
-        fields = (
-            'id', 'name', 'year', 'rating',
-            'description', 'category', 'genre'
-        )
-        read_only_fields = fields
 
 
 class SignUpSerializer(serializers.Serializer, UsernameValidationMixin):

@@ -3,21 +3,10 @@ from django.core.exceptions import ValidationError
 from django.core.validators import (MaxValueValidator, MinValueValidator,
                                     RegexValidator)
 from django.db import models
-from django.utils.timezone import now
 
 from .constants import (EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
                         MAX_LENGTH_STR, ROLES, USERNAME_MAX_LENGTH)
-from .validators import reserved_username_validator
-
-
-def validate_year(year):
-    """Проверка года."""
-    current_year = now().year
-    if year > current_year:
-        raise ValidationError(
-            f'Указанный год ({year}) '
-            f'не может быть больше текущего ({current_year}).')
-    return year
+from .validators import reserved_username_validator, validate_year
 
 
 class SlugNameBaseModel(models.Model):
@@ -63,7 +52,7 @@ class Title(models.Model):
         max_length=MAX_LENGTH_NAME,
         verbose_name='Название',
     )
-    year = models.PositiveSmallIntegerField(
+    year = models.SmallIntegerField(
         verbose_name='Год',
         validators=[validate_year],
     )
@@ -87,6 +76,7 @@ class Title(models.Model):
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
         ordering = ('-year', 'name')
+        default_related_name = 'titles'
 
     def __str__(self):
         return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
