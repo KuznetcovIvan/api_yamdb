@@ -9,7 +9,7 @@ from .constants import (
     EMAIL_MAX_LENGTH, MAX_LENGTH_NAME, MAX_LENGTH_SLUG,
     MAX_LENGTH_STR, USERNAME_MAX_LENGTH, ROLE_USER,
     ROLE_MODERATOR, ROLE_ADMIN)
-from .validators import username_validator
+from .validators import username_validator, validate_year
 
 
 ROLES = (
@@ -72,7 +72,7 @@ class Title(models.Model):
         max_length=MAX_LENGTH_NAME,
         verbose_name='Название',
     )
-    year = models.PositiveSmallIntegerField(
+    year = models.SmallIntegerField(
         verbose_name='Год',
         validators=[validate_year],
     )
@@ -96,6 +96,7 @@ class Title(models.Model):
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
         ordering = ('-year', 'name')
+        default_related_name = 'titles'
 
     def __str__(self):
         return f'{self.name[:MAX_LENGTH_STR]}, {self.year} года.'
